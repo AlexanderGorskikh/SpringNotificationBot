@@ -1,12 +1,14 @@
 package cc.gb.SpringNotificationBot.services;
 
 import cc.gb.SpringNotificationBot.config.BotConfiguration;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+@Slf4j
 @Component
 public class TelegramBot extends TelegramLongPollingBot {
     private BotConfiguration botConfiguration;
@@ -22,7 +24,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             long chatId = update.getMessage().getChatId();
             switch (message) {
                 case "/start" -> {
-                    startCommandReceived(chatId, message);
+                    startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
                 }
                 default -> {
                     sendMessage(chatId,"Пока функция не поддерживается, ");
@@ -41,9 +43,10 @@ public class TelegramBot extends TelegramLongPollingBot {
         return botConfiguration.getBotToken();
     }
 
-    private void startCommandReceived(long chatId, String msg) {
-        String answer = "Hi " + msg;
-        sendMessage(chatId, msg);
+    private void startCommandReceived(long chatId, String name) {
+        String answer = "Hi " + name + " nice to meet you";
+        log.info("Replied to user " + name);
+        sendMessage(chatId, answer);
     }
 
     private void sendMessage(long chatId, String msg) {
@@ -53,7 +56,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         try {
             execute(sendMessage);
         } catch (TelegramApiException e) {
-            throw new RuntimeException(e);
+            log.error("Error occurred: " + e.getMessage());
         }
     }
 }
