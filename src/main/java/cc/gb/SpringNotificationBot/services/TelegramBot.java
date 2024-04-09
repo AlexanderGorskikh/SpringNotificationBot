@@ -4,17 +4,36 @@ import cc.gb.SpringNotificationBot.config.BotConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
+import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Slf4j
 @Component
 public class TelegramBot extends TelegramLongPollingBot {
-    private BotConfiguration botConfiguration;
+    private final BotConfiguration botConfiguration;
+    private final static String HELP_MESSAGE = "Welcome to our demonstration bot";
 
     public TelegramBot(BotConfiguration botConfiguration) {
         this.botConfiguration = botConfiguration;
+        List<BotCommand> listOfCommands = new ArrayList<>();
+        listOfCommands.add(new BotCommand("/start", "start program"));
+        listOfCommands.add(new BotCommand("/my_data", "get data stored"));
+        listOfCommands.add(new BotCommand("/delete_data", "delete my data"));
+        listOfCommands.add(new BotCommand("/settings", "list of preferences"));
+        listOfCommands.add(new BotCommand("/help", "get help message"));
+        try {
+            this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
+
+        } catch (TelegramApiException e) {
+            log.error("Error settings bot command list" + e.getMessage());
+        }
     }
 
     @Override
@@ -26,8 +45,17 @@ public class TelegramBot extends TelegramLongPollingBot {
                 case "/start" -> {
                     startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
                 }
+                case "my_data" -> {
+                }
+                case "/delete_data" -> {
+                }
+                case "/settings" -> {
+                }
+                case "/help" -> {
+                    sendMessage(chatId, HELP_MESSAGE);
+                }
                 default -> {
-                    sendMessage(chatId,"Пока функция не поддерживается, ");
+                    sendMessage(chatId, "Пока функция не поддерживается, ");
                 }
             }
         }

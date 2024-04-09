@@ -9,5 +9,4 @@ class SpringNotificationBotApplicationTests {
 	@Test
 	void contextLoads() {
 	}
-
 }
