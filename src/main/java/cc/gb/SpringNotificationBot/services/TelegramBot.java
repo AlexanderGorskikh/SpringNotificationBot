@@ -3,6 +3,7 @@ package cc.gb.SpringNotificationBot.services;
 import cc.gb.SpringNotificationBot.config.BotConfiguration;
 import cc.gb.SpringNotificationBot.model.User;
 import cc.gb.SpringNotificationBot.repository.UserRepository;
+import com.vdurmont.emoji.EmojiParser;
 import lombok.extern.slf4j.Slf4j;
 import org.glassfish.grizzly.http.util.TimeStamp;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,6 +54,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 case "/start" -> {
                     registerUser(update.getMessage());
                     startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
+
                 }
                 case "my_data" -> {
                 }
@@ -96,7 +98,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void startCommandReceived(long chatId, String name) {
-        String answer = "Hi " + name + " nice to meet you";
+        String answer = EmojiParser.parseToUnicode("Hi, " + name + " nice to meet you" + " :blush:");
         log.info("Replied to user " + name);
         sendMessage(chatId, answer);
     }
