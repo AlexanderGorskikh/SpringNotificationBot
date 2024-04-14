@@ -15,6 +15,8 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.util.ArrayList;
@@ -27,22 +29,12 @@ public class TelegramBot extends TelegramLongPollingBot {
     @Autowired
     private UserRepository userRepository;
     private final static String HELP_MESSAGE = "Welcome to our demonstration bot";
+    private ReplyKeyboardMarkup regularKeyboard;
 
     public TelegramBot(BotConfiguration botConfiguration) {
         this.botConfiguration = botConfiguration;
-
-        List<BotCommand> listOfCommands = new ArrayList<>();
-        listOfCommands.add(new BotCommand("/start", "start program"));
-        listOfCommands.add(new BotCommand("/my_data", "get data stored"));
-        listOfCommands.add(new BotCommand("/delete_data", "delete my data"));
-        listOfCommands.add(new BotCommand("/settings", "list of preferences"));
-        listOfCommands.add(new BotCommand("/help", "get help message"));
-        try {
-            this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
-
-        } catch (TelegramApiException e) {
-            log.error("Error settings bot command list" + e.getMessage());
-        }
+        regularKeyboard = createRegularKeyboard();
+        addListOfCommands();
     }
 
     @Override
@@ -54,7 +46,6 @@ public class TelegramBot extends TelegramLongPollingBot {
                 case "/start" -> {
                     registerUser(update.getMessage());
                     startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
-
                 }
                 case "my_data" -> {
                 }
@@ -63,10 +54,10 @@ public class TelegramBot extends TelegramLongPollingBot {
                 case "/settings" -> {
                 }
                 case "/help" -> {
-                    sendMessage(chatId, HELP_MESSAGE);
+                    sendMessage(chatId, HELP_MESSAGE, regularKeyboard);
                 }
                 default -> {
-                    sendMessage(chatId, "Пока функция не поддерживается, ");
+                    sendMessage(chatId, "Пока функция не поддерживается, ", regularKeyboard);
                 }
             }
         }
@@ -100,17 +91,50 @@ public class TelegramBot extends TelegramLongPollingBot {
     private void startCommandReceived(long chatId, String name) {
         String answer = EmojiParser.parseToUnicode("Hi, " + name + " nice to meet you" + " :blush:");
         log.info("Replied to user " + name);
-        sendMessage(chatId, answer);
+        sendMessage(chatId, answer, regularKeyboard);
     }
 
-    private void sendMessage(long chatId, String msg) {
-        SendMessage sendMessage = new SendMessage();
-        sendMessage.setChatId(chatId);
-        sendMessage.setText(msg);
+    private void sendMessage(long chatId, String msg, ReplyKeyboardMarkup keyboard) {
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId);
+        message.setText(msg);
+        message.setReplyMarkup(keyboard);
+
         try {
-            execute(sendMessage);
+            execute(message);
         } catch (TelegramApiException e) {
             log.error("Error occurred: " + e.getMessage());
+        }
+    }
+
+    private ReplyKeyboardMarkup createRegularKeyboard() {
+        ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
+        List<KeyboardRow> keyboardRows = new ArrayList<>();
+        KeyboardRow row = new KeyboardRow();
+        row.add("button1");
+        row.add("button2");
+        keyboardRows.add(row);
+        row = new KeyboardRow();
+        row.add("button3");
+        row.add("button4");
+        row.add("button5");
+        keyboardRows.add(row);
+        keyboard.setKeyboard(keyboardRows);
+        return keyboard;
+    }
+
+    private void addListOfCommands() {
+        List<BotCommand> listOfCommands = new ArrayList<>();
+        listOfCommands.add(new BotCommand("/start", "start program"));
+        listOfCommands.add(new BotCommand("/my_data", "get data stored"));
+        listOfCommands.add(new BotCommand("/delete_data", "delete my data"));
+        listOfCommands.add(new BotCommand("/settings", "list of preferences"));
+        listOfCommands.add(new BotCommand("/help", "get help message"));
+        try {
+            this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
+
+        } catch (TelegramApiException e) {
+            log.error("Error settings bot command list" + e.getMessage());
         }
     }
 }
