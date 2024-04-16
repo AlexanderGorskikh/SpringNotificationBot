@@ -1,13 +1,15 @@
 package cc.gb.SpringNotificationBot.services;
 
-import cc.gb.SpringNotificationBot.config.BotConfiguration;
+import  cc.gb.SpringNotificationBot.config.BotConfiguration;
 import cc.gb.SpringNotificationBot.model.CallbackDataType;
+import cc.gb.SpringNotificationBot.model.Event;
+import cc.gb.SpringNotificationBot.model.EventInputState;
 import cc.gb.SpringNotificationBot.model.User;
+import cc.gb.SpringNotificationBot.repository.EventRepository;
 import cc.gb.SpringNotificationBot.repository.UserRepository;
 import com.vdurmont.emoji.EmojiParser;
 import lombok.extern.slf4j.Slf4j;
 import org.glassfish.grizzly.http.util.TimeStamp;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
@@ -23,22 +25,47 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Component
 public class TelegramBot extends TelegramLongPollingBot {
+
     private final BotConfiguration botConfiguration;
-    @Autowired
-    private UserRepository userRepository;
+
+    private final UserRepository userRepository;
+
+    private final EventRepository eventRepository;
+
     private final static String HELP_MESSAGE = "Welcome to our demonstration bot";
+
+    private final Map<Long, EventInputState> eventInputStates = new HashMap<>();
+
     private final ReplyKeyboardMarkup regularKeyboard;
 
-    public TelegramBot(BotConfiguration botConfiguration) {
+    public TelegramBot(BotConfiguration botConfiguration, UserRepository userRepository, EventRepository eventRepository) {
         this.botConfiguration = botConfiguration;
+        this.userRepository = userRepository;
+        this.eventRepository = eventRepository;
         regularKeyboard = createRegularKeyboard();
         addListOfCommands();
+    }
+
+
+    @Override
+    public String getBotUsername() {
+        return botConfiguration.getBotName();
+    }
+
+    @Override
+    public String getBotToken() {
+        return botConfiguration.getBotToken();
     }
 
     @Override
@@ -51,55 +78,57 @@ public class TelegramBot extends TelegramLongPollingBot {
                     registerUser(update.getMessage());
                     startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
                 }
-                case "my_data" -> {
-
+                case "/create_event" -> {
+                    createEvent(chatId);
                 }
                 case "/delete_data" -> {
+
                 }
                 case "/settings" -> {
                 }
                 case "/help" -> {
                     sendMessage(chatId, HELP_MESSAGE, regularKeyboard);
                 }
-                case "/register" ->{
+                case "/register" -> {
                     register(chatId);
                 }
                 default -> {
-                    sendMessage(chatId, "Пока функция не поддерживается, ", regularKeyboard);
+                    handleMessage(chatId, message);
                 }
             }
-        } else if (update.hasCallbackQuery()){
+        } else if (update.hasCallbackQuery()) {
             String callbackData = update.getCallbackQuery().getData();
             long messageId = update.getCallbackQuery().getMessage().getMessageId();
             long chatId = update.getCallbackQuery().getMessage().getChatId();
-            switch (callbackData){
+            switch (callbackData) {
                 case CallbackDataType.YES_BUTTON -> {
-                    String text = "You pressed YES button";
-                    EditMessageText editedMessage = new EditMessageText();
-                    editedMessage.setChatId(chatId);
-                    editedMessage.setText(text);
-                    editedMessage.setMessageId((int) messageId);
-                    try {
-                        execute(editedMessage);
-                    } catch (TelegramApiException e) {
-                        System.out.println("ошибка");
-                        log.error("Error occurred: " + e.getMessage());
-                    }
+                    String text ="You pressed YES button";
+                    sendEditedMessage((int) messageId, chatId, text);
                 }
                 case CallbackDataType.NO_BUTTON -> {
                     String text = "You pressed NO button";
-                    EditMessageText editedMessage = new EditMessageText();
-                    editedMessage.setChatId(chatId);
-                    editedMessage.setText(text);
-                    editedMessage.setMessageId((int) messageId);
-                    try {
-                        execute(editedMessage);
-                    } catch (TelegramApiException e) {
-                        System.out.println("ошибка");
-                        log.error("Error occurred: " + e.getMessage());
-                    }
+                    sendEditedMessage((int) messageId, chatId, text);
                 }
             }
+        }
+    }
+
+    private void startCommandReceived(long chatId, String name) {
+        String answer = EmojiParser.parseToUnicode("Hi, " + name + " nice to meet you" + " :blush:");
+        log.info("Replied to user " + name);
+        sendMessage(chatId, answer, regularKeyboard);
+    }
+
+    private void registerUser(Message msg) {
+        if (userRepository.findById(msg.getChatId()).isEmpty()) {
+            var chatId = msg.getChatId();
+            var chat = msg.getChat();
+            User user = new User();
+            user.setChatId(chatId);
+            user.setUserName(chat.getUserName());
+            user.setRegisteredAt(new TimeStamp());
+            userRepository.save(user);
+            log.info("user saved: " + user);
         }
     }
 
@@ -132,43 +161,26 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private void registerUser(Message msg) {
-        if (userRepository.findById(msg.getChatId()).isEmpty()) {
-            var chatId = msg.getChatId();
-            var chat = msg.getChat();
-            User user = new User();
-            user.setChatId(chatId);
-            user.setFirstName(chat.getFirstName());
-            user.setLastName(chat.getLastName());
-            user.setUserName(chat.getUserName());
-            user.setRegisteredAt(new TimeStamp());
-            userRepository.save(user);
-            log.info("user saved: " + user);
+    private void sendEditedMessage(int messageId, long chatId, String text) {
+        EditMessageText editedMessage = new EditMessageText();
+        editedMessage.setChatId(chatId);
+        editedMessage.setText(text);
+        editedMessage.setMessageId(messageId);
+        try {
+            execute(editedMessage);
+        } catch (TelegramApiException e) {
+            System.out.println("ошибка");
+            log.error("Error occurred: " + e.getMessage());
         }
     }
 
-    @Override
-    public String getBotUsername() {
-        return botConfiguration.getBotName();
-    }
 
-    @Override
-    public String getBotToken() {
-        return botConfiguration.getBotToken();
-    }
-
-    private void startCommandReceived(long chatId, String name) {
-        String answer = EmojiParser.parseToUnicode("Hi, " + name + " nice to meet you" + " :blush:");
-        log.info("Replied to user " + name);
-        sendMessage(chatId, answer, regularKeyboard);
-    }
 
     private void sendMessage(long chatId, String msg, ReplyKeyboardMarkup keyboard) {
         SendMessage message = new SendMessage();
         message.setChatId(chatId);
         message.setText(msg);
         message.setReplyMarkup(keyboard);
-
         try {
             execute(message);
         } catch (TelegramApiException e) {
@@ -180,11 +192,11 @@ public class TelegramBot extends TelegramLongPollingBot {
         ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
         List<KeyboardRow> keyboardRows = new ArrayList<>();
         KeyboardRow row = new KeyboardRow();
-        row.add("button1");
-        row.add("button2");
+        row.add("Добавить уведомление о мероприятии");
+        row.add("Посмотреть все доступные мероприятия");
         keyboardRows.add(row);
         row = new KeyboardRow();
-        row.add("button3");
+        row.add("Посмотреть все доступные мероприятия");
         row.add("button4");
         row.add("button5");
         keyboardRows.add(row);
@@ -196,7 +208,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         List<BotCommand> listOfCommands = new ArrayList<>();
         listOfCommands.add(new BotCommand("/start", "start program"));
         listOfCommands.add(new BotCommand("/register", "start register"));
-        listOfCommands.add(new BotCommand("/my_data", "get data stored"));
+        listOfCommands.add(new BotCommand("/create_event", "get data stored"));
         listOfCommands.add(new BotCommand("/delete_data", "delete my data"));
         listOfCommands.add(new BotCommand("/settings", "list of preferences"));
         listOfCommands.add(new BotCommand("/help", "get help message"));
@@ -207,4 +219,45 @@ public class TelegramBot extends TelegramLongPollingBot {
             log.error("Error settings bot command list" + e.getMessage());
         }
     }
+
+    private void createEvent(Long chatId) {
+        sendMessage(chatId, "Введите описание мероприятия:", regularKeyboard);
+        eventInputStates.put(chatId, new EventInputState());
+    }
+
+    private void processEventDescriptionInput(Long chatId, String message) {
+        EventInputState state = eventInputStates.get(chatId);
+        state.setDescription(message);
+        sendMessage(chatId, "Введите дату события в формате \"dd MM YY hh mm ss\":", regularKeyboard);
+    }
+
+    private void processEventDateInput(Long chatId, String message) {
+        EventInputState state = eventInputStates.get(chatId);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MM yy HH mm ss");
+        LocalDateTime dateTime = LocalDateTime.parse(message, formatter);
+        state.setTimeOfNotification(dateTime);
+
+        Event event = new Event();
+        event.setDescription(state.getDescription());
+        event.setTimeOfNotification(state.getTimeOfNotification());
+        eventRepository.save(event);
+
+        sendMessage(chatId, "Событие успешно добавлено!", regularKeyboard);
+        eventInputStates.remove(chatId);
+    }
+
+    private void handleMessage(Long chatId, String message) {
+        if (!eventInputStates.containsKey(chatId)) {
+            sendMessage(chatId, "Неизвестная команда. Используйте /help для получения справки.", regularKeyboard);
+            return;
+        }
+        EventInputState state = eventInputStates.get(chatId);
+        if (state.getDescription() == null) {
+            processEventDescriptionInput(chatId, message);
+        } else if (state.getTimeOfNotification() == null) {
+            processEventDateInput(chatId, message);
+        }
+    }
+
+
 }
