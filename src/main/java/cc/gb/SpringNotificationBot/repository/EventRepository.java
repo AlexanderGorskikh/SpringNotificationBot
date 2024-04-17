@@ -1,7 +1,12 @@
 package cc.gb.SpringNotificationBot.repository;
 
 import cc.gb.SpringNotificationBot.model.Event;
+import cc.gb.SpringNotificationBot.model.EventStatus;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.repository.CrudRepository;
 
-public interface EventRepository extends CrudRepository<Event, Long> {
+import java.util.List;
+
+public interface EventRepository extends JpaRepository<Event, Long> {
+    List<Event> findByStatusIs(EventStatus eventStatus);
 }
