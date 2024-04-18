@@ -24,4 +24,7 @@ public class Event {
     @Basic
     private LocalDateTime timeOfNotification;
     private EventStatus status;
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
 }
