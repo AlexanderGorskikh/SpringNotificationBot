@@ -37,6 +37,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     private final ReplyKeyboardMarkup regularKeyboard;
     private final TelegramBotCRUDHandler CRUDHandler;
 
+
     public TelegramBot(BotConfiguration botConfiguration, TelegramBotCRUDHandler crudHandler) {
         this.botConfiguration = botConfiguration;
         this.CRUDHandler = crudHandler;
@@ -102,7 +103,6 @@ public class TelegramBot extends TelegramLongPollingBot {
     /**
      * Метод который позволяет переслать в сообщении пользователю все Event в списке listEvent
      * определённым образом
-     *
      * @param chatId    идентификатор чата
      * @param listEvent список Event для передачи пользователю
      */
@@ -122,7 +122,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         sendMessage(chatId, answer, regularKeyboard);
     }
 
-    private void sendMessage(long chatId, String msg, ReplyKeyboardMarkup keyboard) {
+    public void sendMessage(long chatId, String msg, ReplyKeyboardMarkup keyboard) {
         SendMessage message = new SendMessage();
         message.setChatId(chatId);
         message.setText(msg);
@@ -181,7 +181,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MM yy HH mm");
         LocalDateTime dateTime = LocalDateTime.parse(message, formatter);
         state.setTimeOfNotification(dateTime);
-        CRUDHandler.addEvent(state);
+        CRUDHandler.addEvent(state, chatId);
         sendMessage(chatId, "Событие успешно добавлено!", regularKeyboard);
         eventInputStates.remove(chatId);
     }
