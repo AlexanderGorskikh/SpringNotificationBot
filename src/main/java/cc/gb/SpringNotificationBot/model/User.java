@@ -14,7 +14,6 @@ import org.glassfish.grizzly.http.util.TimeStamp;
 public class User {
     @Id
     private Long chatId;
-
     private String userName;
     private TimeStamp registeredAt;
 }

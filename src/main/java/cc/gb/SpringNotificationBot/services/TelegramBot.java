@@ -1,28 +1,23 @@
 package cc.gb.SpringNotificationBot.services;
 
-import  cc.gb.SpringNotificationBot.config.BotConfiguration;
-import cc.gb.SpringNotificationBot.model.*;
-import cc.gb.SpringNotificationBot.repository.EventRepository;
-import cc.gb.SpringNotificationBot.repository.UserRepository;
+import cc.gb.SpringNotificationBot.config.BotConfiguration;
+import cc.gb.SpringNotificationBot.model.Event;
+import cc.gb.SpringNotificationBot.model.EventInputState;
+import cc.gb.SpringNotificationBot.model.EventStatus;
+import cc.gb.SpringNotificationBot.model.StaticMessages;
 import com.vdurmont.emoji.EmojiParser;
 import lombok.extern.slf4j.Slf4j;
-import org.glassfish.grizzly.http.util.TimeStamp;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * todo
@@ -71,24 +66,54 @@ public class TelegramBot extends TelegramLongPollingBot {
                 }
                 case "Add event" -> {
                     createEvent(chatId);
-
                 }
                 case "Get events" -> {
-
+                    sendEvents(chatId,
+                            CRUDHandler.getAllEvents(),
+                            "Список всех мероприятий: \n");
                 }
                 case "Update event" -> {
-
+                    sendEvents(chatId,
+                            CRUDHandler.getListEventsByStatus(EventStatus.PLANNED),
+                            "Введите новое описание мероприятия в формате: \"номер_новое описание\" \n");
+                    var inputState = new EventInputState();
+                    inputState.setUpdate(true);
+                    eventInputStates.put(chatId, inputState);
                 }
                 case "Help" -> {
                     sendMessage(chatId, StaticMessages.HELP_MESSAGE, regularKeyboard);
                 }
                 case "Delete event" -> {
+                    sendEvents(chatId,
+                            CRUDHandler.getListEventsByStatus(EventStatus.PLANNED),
+                            "Введите индекс мероприятия, который вы хотите удалить: \n");
+                    var inputState = new EventInputState();
+                    inputState.setDelete(true);
+                    eventInputStates.put(chatId, inputState);
                 }
                 default -> {
+                    System.out.println(eventInputStates.get(chatId));
                     handleMessage(chatId, message);
                 }
             }
         }
+    }
+
+    /**
+     * Метод который позволяет переслать в сообщении пользователю все Event в списке listEvent
+     * определённым образом
+     *
+     * @param chatId    идентификатор чата
+     * @param listEvent список Event для передачи пользователю
+     */
+    private void sendEvents(long chatId, Iterable<Event> listEvent, String description) {
+        StringBuilder sb = new StringBuilder();
+        if (description != null) sb.append(description);
+        listEvent.forEach(event ->
+                sb.append(event.getId()).append(" ")
+                        .append(event.getStatus()).append(" : ")
+                        .append(event.getDescription()).append("\n"));
+        sendMessage(chatId, sb.toString(), regularKeyboard);
     }
 
     private void startCommandReceived(long chatId, String name) {
@@ -134,6 +159,17 @@ public class TelegramBot extends TelegramLongPollingBot {
         eventInputStates.put(chatId, new EventInputState());
     }
 
+    private void updateEvent(Long chatId, Long eventId, String newDescription) {
+        CRUDHandler.updateEvent(eventId, newDescription);
+        eventInputStates.remove(chatId);
+        sendEvents(chatId, CRUDHandler.getListEventsByStatus(EventStatus.PLANNED), null);
+    }
+
+    private void deleteEvent(Long chatId, Long eventId) {
+        CRUDHandler.deleteEvent(eventId);
+        sendEvents(chatId, CRUDHandler.getListEventsByStatus(EventStatus.PLANNED),null);
+    }
+
     private void processEventDescriptionInput(Long chatId, String message) {
         EventInputState state = eventInputStates.get(chatId);
         state.setDescription(message);
@@ -145,7 +181,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MM yy HH mm");
         LocalDateTime dateTime = LocalDateTime.parse(message, formatter);
         state.setTimeOfNotification(dateTime);
-        CRUDHandler.addEvent(chatId, state);
+        CRUDHandler.addEvent(state);
         sendMessage(chatId, "Событие успешно добавлено!", regularKeyboard);
         eventInputStates.remove(chatId);
     }
@@ -157,12 +193,28 @@ public class TelegramBot extends TelegramLongPollingBot {
             return;
         }
         EventInputState state = eventInputStates.get(chatId);
-        if (state.getDescription() == null) {
-            processEventDescriptionInput(chatId, message);
-        } else if (state.getTimeOfNotification() == null) {
-            processEventDateInput(chatId, message);
+        if (state.isUpdate()) {
+            try {
+                String[] tmp = message.split(" ");
+                Long eventId = Long.parseLong(tmp[0]);
+                StringBuilder sb = new StringBuilder();
+                Arrays.stream(tmp).skip(1).forEach(s -> sb.append(s).append(" "));
+                updateEvent(chatId, eventId, sb.toString());
+            } catch (Exception e) {
+                sendMessage(chatId, "Вы ввели не число, попробуйте снова", regularKeyboard);
+            }
+        } else if (state.isDelete()) {
+            try {
+                deleteEvent(chatId,Long.parseLong(message));
+            } catch (Exception e) {
+                sendMessage(chatId, "Неверный формат или мероприятие не найдено", regularKeyboard);
+            }
+        } else {
+            if (state.getDescription() == null) {
+                processEventDescriptionInput(chatId, message);
+            } else if (state.getTimeOfNotification() == null) {
+                processEventDateInput(chatId, message);
+            }
         }
     }
-
-
 }

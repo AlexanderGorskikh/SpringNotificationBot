@@ -8,4 +8,6 @@ import java.time.LocalDateTime;
 public class EventInputState {
     private String description;
     private LocalDateTime timeOfNotification;
+    private boolean isUpdate;
+    private boolean isDelete;
 }
