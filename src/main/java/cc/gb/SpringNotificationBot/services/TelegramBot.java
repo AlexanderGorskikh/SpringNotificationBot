@@ -84,9 +84,15 @@ public class TelegramBot extends TelegramLongPollingBot {
                     sendMessage(chatId, StaticMessages.HELP_MESSAGE, regularKeyboard);
                 }
                 case "Delete event" -> {
-
+                    sendEvents(chatId,
+                            CRUDHandler.getListEventsByStatus(EventStatus.PLANNED),
+                            "Введите индекс мероприятия, который вы хотите удалить: \n");
+                    var inputState = new EventInputState();
+                    inputState.setDelete(true);
+                    eventInputStates.put(chatId, inputState);
                 }
                 default -> {
+                    System.out.println(eventInputStates.get(chatId));
                     handleMessage(chatId, message);
                 }
             }
@@ -153,9 +159,14 @@ public class TelegramBot extends TelegramLongPollingBot {
         eventInputStates.put(chatId, new EventInputState());
     }
 
-    private void updateEvent(Long chatId,Long eventId, String newDescription) {
-        CRUDHandler.updateEvent(eventId,newDescription);
+    private void updateEvent(Long chatId, Long eventId, String newDescription) {
+        CRUDHandler.updateEvent(eventId, newDescription);
         eventInputStates.remove(chatId);
+        sendEvents(chatId, CRUDHandler.getListEventsByStatus(EventStatus.PLANNED), null);
+    }
+
+    private void deleteEvent(Long chatId, Long eventId) {
+        CRUDHandler.deleteEvent(eventId);
         sendEvents(chatId, CRUDHandler.getListEventsByStatus(EventStatus.PLANNED),null);
     }
 
@@ -188,10 +199,15 @@ public class TelegramBot extends TelegramLongPollingBot {
                 Long eventId = Long.parseLong(tmp[0]);
                 StringBuilder sb = new StringBuilder();
                 Arrays.stream(tmp).skip(1).forEach(s -> sb.append(s).append(" "));
-                updateEvent(chatId,eventId, sb.toString());
+                updateEvent(chatId, eventId, sb.toString());
             } catch (Exception e) {
-                System.out.println(e);
                 sendMessage(chatId, "Вы ввели не число, попробуйте снова", regularKeyboard);
+            }
+        } else if (state.isDelete()) {
+            try {
+                deleteEvent(chatId,Long.parseLong(message));
+            } catch (Exception e) {
+                sendMessage(chatId, "Неверный формат или мероприятие не найдено", regularKeyboard);
             }
         } else {
             if (state.getDescription() == null) {
