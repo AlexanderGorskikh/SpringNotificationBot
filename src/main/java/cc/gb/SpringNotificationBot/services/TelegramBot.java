@@ -68,14 +68,19 @@ public class TelegramBot extends TelegramLongPollingBot {
                 case "Add event" -> {
                     createEvent(chatId);
                 }
-                case "Get events" -> {
+                case "Get planned events" ->{
                     sendEvents(chatId,
-                            CRUDHandler.getAllEventsById(chatId),
+                            CRUDHandler.getUserEventsByStatus(chatId,EventStatus.PLANNED),
+                            "Список запланированных мероприятий");
+                }
+                case "Get all events" -> {
+                    sendEvents(chatId,
+                            CRUDHandler.getAllUserEvents(chatId),
                             "Список всех мероприятий: \n");
                 }
                 case "Update event" -> {
                     sendEvents(chatId,
-                            CRUDHandler.getListEventsByStatus(EventStatus.PLANNED),
+                            CRUDHandler.getUserEventsByStatus(chatId,EventStatus.PLANNED),
                             "Введите новое описание мероприятия в формате: \"номер_новое описание\" \n");
                     var inputState = new EventInputState();
                     inputState.setUpdate(true);
@@ -86,7 +91,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 }
                 case "Delete event" -> {
                     sendEvents(chatId,
-                            CRUDHandler.getListEventsByStatus(EventStatus.PLANNED),
+                            CRUDHandler.getAllUserEvents(chatId),
                             "Введите индекс мероприятия, который вы хотите удалить: \n");
                     var inputState = new EventInputState();
                     inputState.setDelete(true);
@@ -143,11 +148,12 @@ public class TelegramBot extends TelegramLongPollingBot {
         List<KeyboardRow> keyboardRows = new ArrayList<>();
         KeyboardRow row = new KeyboardRow();
         row.add("Add event");
-        row.add("Get events");
+        row.add("Planned events");
         row.add("Update event");
         keyboardRows.add(row);
         row = new KeyboardRow();
         row.add("Help");
+        row.add("All events");
         row.add("Delete event");
         keyboardRows.add(row);
         keyboard.setKeyboard(keyboardRows);
@@ -162,12 +168,12 @@ public class TelegramBot extends TelegramLongPollingBot {
     private void updateEvent(Long chatId, Long eventId, String newDescription) {
         CRUDHandler.updateEvent(eventId, newDescription);
         eventInputStates.remove(chatId);
-        sendEvents(chatId, CRUDHandler.getListEventsByStatus(EventStatus.PLANNED), null);
+        sendEvents(chatId, CRUDHandler.getAllEventsByStatus(EventStatus.PLANNED), null);
     }
 
     private void deleteEvent(Long chatId, Long eventId) {
         CRUDHandler.deleteEvent(eventId);
-        sendEvents(chatId, CRUDHandler.getListEventsByStatus(EventStatus.PLANNED),null);
+        sendEvents(chatId, CRUDHandler.getAllEventsByStatus(EventStatus.PLANNED),null);
     }
 
     private void processEventDescriptionInput(Long chatId, String message) {

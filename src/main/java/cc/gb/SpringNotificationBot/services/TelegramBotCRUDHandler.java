@@ -54,11 +54,16 @@ public class TelegramBotCRUDHandler {
         }
     }
 
-    public List<Event> getListEventsByStatus(EventStatus eventStatus) {
+    public List<Event> getAllEventsByStatus(EventStatus eventStatus) {
         return eventRepository.findByStatusIs(eventStatus);
     }
 
-    public List<Event> getAllEventsById(Long chatId) {
+    public List<Event> getUserEventsByStatus(Long chatId, EventStatus eventStatus){
+        return eventRepository.findByUserAndStatusIs(
+                userRepository.findById(chatId).orElseThrow(),eventStatus);
+    }
+
+    public List<Event> getAllUserEvents(Long chatId) {
         return eventRepository.findByUserIs(userRepository.findById(chatId).orElseThrow());
     }
 
