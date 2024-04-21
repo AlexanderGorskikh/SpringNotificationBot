@@ -17,14 +17,27 @@ public class InlineCalendarService {
         message.setText("Выберите день:");
         message.setChatId(chatId);
 
-        InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
-        List<InlineKeyboardButton> row = new ArrayList<>();
-
         LocalDate currentDate = LocalDate.now();
         int daysInMonth = currentDate.lengthOfMonth();
 
-        for (int i = 1; i <= daysInMonth; i++) {
+        message.setReplyMarkup(createInlineNumberButtons(daysInMonth));
+        return message;
+    }
+
+    public SendMessage createMessageWithHourButtons(Long chatId) {
+        SendMessage message = new SendMessage();
+        message.setText("Выберите час:");
+        message.setChatId(chatId);
+        message.setReplyMarkup(createInlineNumberButtons(24));
+        return message;
+    }
+
+    public InlineKeyboardMarkup createInlineNumberButtons(int numbers) {
+        InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+
+        List<InlineKeyboardButton> row = new ArrayList<>();
+        for (int i = 1; i <= numbers; i++) {
             var button = new InlineKeyboardButton(String.valueOf(i));
             button.setCallbackData(String.valueOf(i));
             row.add(button);
@@ -33,13 +46,10 @@ public class InlineCalendarService {
                 row = new ArrayList<>();
             }
         }
-
         if (!row.isEmpty()) {
             rows.add(row);
         }
-
         keyboardMarkup.setKeyboard(rows);
-        message.setReplyMarkup(keyboardMarkup);
-        return message;
+        return keyboardMarkup;
     }
 }
