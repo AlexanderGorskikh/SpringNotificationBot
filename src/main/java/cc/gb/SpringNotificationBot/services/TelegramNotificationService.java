@@ -3,6 +3,7 @@ package cc.gb.SpringNotificationBot.services;
 import cc.gb.SpringNotificationBot.model.Event;
 import cc.gb.SpringNotificationBot.model.EventStatus;
 import org.springframework.scheduling.annotation.EnableScheduling;
+
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -37,8 +38,10 @@ public class TelegramNotificationService {
      */
     @Scheduled(fixedDelay = 60000)
     public void checkNotification() {
+
         List<Event> notifications = crudHandler.getListEventsByStatus(EventStatus.PLANNED);
         StringBuilder notification = new StringBuilder();
+
         for (Event event : notifications) {
             LocalDateTime eventTime = event.getTimeOfNotification();
             LocalDateTime now = LocalDateTime.now();
