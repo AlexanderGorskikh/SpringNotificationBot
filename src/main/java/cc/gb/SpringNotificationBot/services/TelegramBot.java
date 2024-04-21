@@ -70,7 +70,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 }
                 case "Get events" -> {
                     sendEvents(chatId,
-                            CRUDHandler.getAllEvents(),
+                            CRUDHandler.getAllEventsById(chatId),
                             "Список всех мероприятий: \n");
                 }
                 case "Update event" -> {

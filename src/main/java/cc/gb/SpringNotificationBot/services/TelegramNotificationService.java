@@ -23,7 +23,6 @@ public class TelegramNotificationService {
     public TelegramNotificationService(TelegramBotCRUDHandler crudHandler, TelegramBot telegramBot) {
         this.crudHandler = crudHandler;
         this.telegramBot = telegramBot;
-        checkNotification();
     }
 
     @Scheduled(fixedDelay = 60000)

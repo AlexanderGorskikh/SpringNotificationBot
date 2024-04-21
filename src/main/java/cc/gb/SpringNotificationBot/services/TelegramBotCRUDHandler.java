@@ -11,6 +11,7 @@ import org.glassfish.grizzly.http.util.TimeStamp;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.Message;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -38,6 +39,7 @@ public class TelegramBotCRUDHandler {
         event.setDescription(newDescription);
         eventRepository.save(event);
     }
+
     public void deleteEvent(Long eventId){
         eventRepository.delete(eventRepository.getReferenceById(eventId));
     }
@@ -46,7 +48,7 @@ public class TelegramBotCRUDHandler {
         if (userRepository.findById(msg.getChatId()).isEmpty()) {
             var chatId = msg.getChatId();
             var chat = msg.getChat();
-            User user = new User(chatId, chat.getUserName(), new TimeStamp(), null);
+            User user = new User(chatId, chat.getUserName(), new TimeStamp(), new ArrayList<>());
             userRepository.save(user);
             log.info("User added");
         }
@@ -54,6 +56,10 @@ public class TelegramBotCRUDHandler {
 
     public List<Event> getListEventsByStatus(EventStatus eventStatus) {
         return eventRepository.findByStatusIs(eventStatus);
+    }
+
+    public List<Event> getAllEventsById(Long chatId) {
+        return eventRepository.findByUserIs(userRepository.findById(chatId).orElseThrow());
     }
 
     public List<Event> getAllEvents() {
