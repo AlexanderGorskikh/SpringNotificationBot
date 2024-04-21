@@ -28,6 +28,13 @@ public class TelegramNotificationService {
         this.telegramBot = telegramBot;
     }
 
+    /**
+     * Метод, отвечающий за рассылку уведомлений о внесенном
+     * пользователе событии. Используя аннотацию Schedule
+     * и потоки, каждую минуту мы проверяем подошло ли время.
+     * Уведомления приходят за 30, 10 минут и во время события.
+     * После отправки уведомления, событие переходит в статус завершенного.
+     */
     @Scheduled(fixedDelay = 60000)
     public void checkNotification() {
         List<Event> notifications = crudHandler.getListEventsByStatus(EventStatus.PLANNED);
@@ -36,23 +43,22 @@ public class TelegramNotificationService {
             LocalDateTime eventTime = event.getTimeOfNotification();
             LocalDateTime now = LocalDateTime.now();
             if (eventTime.isAfter(now) && eventTime.minusMinutes(30).isBefore(now)) {
-                notification.append("У вас запланировано: ");
-                notification.append(event.getDescription());
-                notification.append(" через полчаса!");
-                telegramBot.sendMessage(event.getUser().getChatId(), notification.toString(), null);
-                notification.setLength(0);
+                sendEventNotification(notification, event, " через полчаса!");
             } else if (eventTime.isAfter(now) && eventTime.minusMinutes(10).isBefore(now)) {
-                notification.append("У вас запланировано: ");
-                notification.append(event.getDescription());
-                notification.append(" через десять минут!");
-                telegramBot.sendMessage(event.getUser().getChatId(), notification.toString(), null);
-                notification.setLength(0);
+                sendEventNotification(notification, event, " через десять минут!");
             }
             if (event.getTimeOfNotification().isAfter(now)) {
-                notification.append("У вас запланировано!");
-                notification.append(event.getDescription());
-                telegramBot.sendMessage(event.getUser().getChatId(), notification.toString(), null);
+                sendEventNotification(notification, event, " уже сейчас!");
+                event.setStatus(EventStatus.FINISHED);
             }
         }
+    }
+
+    private void sendEventNotification(StringBuilder notification, Event event, String str) {
+        notification.append("У вас запланировано: ");
+        notification.append(event.getDescription());
+        notification.append(str);
+        telegramBot.sendMessage(event.getUser().getChatId(), notification.toString(), null);
+        notification.setLength(0);
     }
 }
