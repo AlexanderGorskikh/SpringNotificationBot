@@ -1,20 +1,20 @@
 package cc.gb.SpringNotificationBot.services;
 
 import cc.gb.SpringNotificationBot.config.BotConfiguration;
-import cc.gb.SpringNotificationBot.model.Event;
-import cc.gb.SpringNotificationBot.model.EventInputState;
-import cc.gb.SpringNotificationBot.model.EventStatus;
-import cc.gb.SpringNotificationBot.model.StaticMessages;
+import cc.gb.SpringNotificationBot.model.*;
 import com.vdurmont.emoji.EmojiParser;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.send.SendSticker;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
+import org.telegram.telegrambots.meta.api.objects.stickers.Sticker;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.time.LocalDate;
@@ -148,6 +148,7 @@ public class TelegramBot extends TelegramLongPollingBot {
      */
     private void startCommandReceived(long chatId, String name) {
         String answer = EmojiParser.parseToUnicode("Hi, " + name + " nice to meet you :blush:");
+        sendSticker(chatId,new InputFile(Stickers.Hi.getKey()));
         log.info("Replied to user " + name);
         sendMessage(chatId, answer, regularKeyboard);
     }
@@ -184,6 +185,17 @@ public class TelegramBot extends TelegramLongPollingBot {
         if (markup!=null) editedMessage.setReplyMarkup(markup);
         editedMessage.setText(msg);
         executeMessage(editedMessage);
+    }
+
+    public void sendSticker(Long chatId,InputFile inputFile){
+        SendSticker sendSticker = new SendSticker();
+        sendSticker.setChatId(chatId);
+        sendSticker.setSticker(inputFile);
+        try {
+            execute(sendSticker);
+        } catch (TelegramApiException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
