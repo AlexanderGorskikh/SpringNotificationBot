@@ -16,26 +16,26 @@ import java.util.List;
 @Component
 public class TelegramNotificationService {
 
-    private final TelegramBotCRUDHandler crudHandler;
-    private TelegramBot telegramBot;
+    // private final TelegramBotCRUDHandler crudHandler;
+    // private TelegramBot telegramBot;
 
 
-    public TelegramNotificationService(TelegramBotCRUDHandler crudHandler, TelegramBot telegramBot) {
-        this.crudHandler = crudHandler;
-        this.telegramBot = telegramBot;
-        checkNotification();
-    }
+    // public TelegramNotificationService(TelegramBotCRUDHandler crudHandler, TelegramBot telegramBot) {
+    //     this.crudHandler = crudHandler;
+    //     this.telegramBot = telegramBot;
+    //     checkNotification();
+    // }
 
-    @Scheduled(fixedDelay = 60000)
-    public void checkNotification() {
-        List<Event> notifications = crudHandler.getListEventsByStatus(EventStatus.PLANNED);
-        for (Event event : notifications) {
-            LocalDateTime now = LocalDateTime.now();
-            if (event.getTimeOfNotification().isBefore(now)) {
-                String message = "У вас запланировано: " + event.getDescription() + " на " + event.getTimeOfNotification();
-                telegramBot.sendMessage(event.getUser().getChatId(), message, null);
-                System.out.println("Notification");
-            }
-        }
-    }
+    // @Scheduled(fixedDelay = 60000)
+    // public void checkNotification() {
+    //     List<Event> notifications = crudHandler.getListEventsByStatus(EventStatus.PLANNED);
+    //     for (Event event : notifications) {
+    //         LocalDateTime now = LocalDateTime.now();
+    //         if (event.getTimeOfNotification().isBefore(now)) {
+    //             String message = "У вас запланировано: " + event.getDescription() + " на " + event.getTimeOfNotification();
+    //             telegramBot.sendMessage(event.getUser().getChatId(), message, null);
+    //             System.out.println("Notification");
+    //         }
+    //     }
+    // }
 }
