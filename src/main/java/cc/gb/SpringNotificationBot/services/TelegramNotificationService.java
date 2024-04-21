@@ -39,7 +39,7 @@ public class TelegramNotificationService {
     @Scheduled(fixedDelay = 60000)
     public void checkNotification() {
 
-        List<Event> notifications = crudHandler.getListEventsByStatus(EventStatus.PLANNED);
+        List<Event> notifications = crudHandler.getAllEventsByStatus(EventStatus.PLANNED);
         StringBuilder notification = new StringBuilder();
 
         for (Event event : notifications) {
