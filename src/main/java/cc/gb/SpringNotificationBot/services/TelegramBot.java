@@ -10,13 +10,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
@@ -36,11 +37,15 @@ public class TelegramBot extends TelegramLongPollingBot {
     private final Map<Long, EventInputState> eventInputStates = new HashMap<>();
     private final ReplyKeyboardMarkup regularKeyboard;
     private final TelegramBotCRUDHandler CRUDHandler;
+    private final InlineCalendarService inlineCalendarService;
 
 
-    public TelegramBot(BotConfiguration botConfiguration, TelegramBotCRUDHandler crudHandler) {
+    public TelegramBot(BotConfiguration botConfiguration,
+                       TelegramBotCRUDHandler crudHandler
+            , InlineCalendarService inlineCalendarService) {
         this.botConfiguration = botConfiguration;
         this.CRUDHandler = crudHandler;
+        this.inlineCalendarService = inlineCalendarService;
         regularKeyboard = createRegularKeyboard();
     }
 
@@ -68,19 +73,19 @@ public class TelegramBot extends TelegramLongPollingBot {
                 case "Add event" -> {
                     createEvent(chatId);
                 }
-                case "Get planned events" ->{
+                case "Planned events" -> {
                     sendEvents(chatId,
-                            CRUDHandler.getUserEventsByStatus(chatId,EventStatus.PLANNED),
+                            CRUDHandler.getUserEventsByStatus(chatId, EventStatus.PLANNED),
                             "Список запланированных мероприятий");
                 }
-                case "Get all events" -> {
+                case "All events" -> {
                     sendEvents(chatId,
                             CRUDHandler.getAllUserEvents(chatId),
                             "Список всех мероприятий: \n");
                 }
                 case "Update event" -> {
                     sendEvents(chatId,
-                            CRUDHandler.getUserEventsByStatus(chatId,EventStatus.PLANNED),
+                            CRUDHandler.getUserEventsByStatus(chatId, EventStatus.PLANNED),
                             "Введите новое описание мероприятия в формате: \"номер_новое описание\" \n");
                     var inputState = new EventInputState();
                     inputState.setUpdate(true);
@@ -98,9 +103,16 @@ public class TelegramBot extends TelegramLongPollingBot {
                     eventInputStates.put(chatId, inputState);
                 }
                 default -> {
-                    System.out.println(eventInputStates.get(chatId));
                     handleMessage(chatId, message);
                 }
+            }
+        } else if (update.hasCallbackQuery()) {
+
+            Long chatId = update.getCallbackQuery().getMessage().getChatId();
+            if (eventInputStates.get(chatId) != null) {
+                String data = update.getCallbackQuery().getData();
+                Integer messageId = update.getCallbackQuery().getMessage().getMessageId();
+                processEventDateInput(chatId, data, messageId);
             }
         }
     }
@@ -108,6 +120,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     /**
      * Метод который позволяет переслать в сообщении пользователю все Event в списке listEvent
      * определённым образом
+     *
      * @param chatId    идентификатор чата
      * @param listEvent список Event для передачи пользователю
      */
@@ -136,6 +149,14 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void executeMessage(SendMessage message) {
+        try {
+            execute(message);
+        } catch (TelegramApiException e) {
+            log.error("Error occurred: " + e.getMessage());
+        }
+    }
+
+    private void executeMessage(EditMessageText message) {
         try {
             execute(message);
         } catch (TelegramApiException e) {
@@ -173,22 +194,32 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     private void deleteEvent(Long chatId, Long eventId) {
         CRUDHandler.deleteEvent(eventId);
-        sendEvents(chatId, CRUDHandler.getAllEventsByStatus(EventStatus.PLANNED),null);
+        sendEvents(chatId, CRUDHandler.getAllEventsByStatus(EventStatus.PLANNED), null);
     }
 
     private void processEventDescriptionInput(Long chatId, String message) {
         EventInputState state = eventInputStates.get(chatId);
         state.setDescription(message);
-        sendMessage(chatId, "Введите дату события в формате \"dd MM YY hh mm\":", regularKeyboard);
+        SendMessage sendMessage = inlineCalendarService.createMessageWithDayButtons(chatId);
+
+        executeMessage(sendMessage);
     }
 
-    private void processEventDateInput(Long chatId, String message) {
+    private void processEventDateInput(Long chatId, String dayOfMonth, Integer messageId) {
         EventInputState state = eventInputStates.get(chatId);
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MM yy HH mm");
-        LocalDateTime dateTime = LocalDateTime.parse(message, formatter);
+        LocalDate localdate = LocalDate.now();
+        LocalDateTime dateTime = LocalDateTime.of(
+                localdate.getYear(),
+                localdate.getMonth(),
+                Integer.parseInt(dayOfMonth),
+                0, 0, 0);
         state.setTimeOfNotification(dateTime);
         CRUDHandler.addEvent(state, chatId);
-        sendMessage(chatId, "Событие успешно добавлено!", regularKeyboard);
+        EditMessageText editedMessage = new EditMessageText();
+        editedMessage.setChatId(chatId);
+        editedMessage.setMessageId(messageId);
+        editedMessage.setText("Событие успешно добавлено!");
+        executeMessage(editedMessage);
         eventInputStates.remove(chatId);
     }
 
@@ -211,15 +242,13 @@ public class TelegramBot extends TelegramLongPollingBot {
             }
         } else if (state.isDelete()) {
             try {
-                deleteEvent(chatId,Long.parseLong(message));
+                deleteEvent(chatId, Long.parseLong(message));
             } catch (Exception e) {
                 sendMessage(chatId, "Неверный формат или мероприятие не найдено", regularKeyboard);
             }
         } else {
             if (state.getDescription() == null) {
                 processEventDescriptionInput(chatId, message);
-            } else if (state.getTimeOfNotification() == null) {
-                processEventDateInput(chatId, message);
             }
         }
     }
