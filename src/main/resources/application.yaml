@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: SpringNotificationBot
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+  datasource:
+    url: jdbc:postgresql://localhost:5432/postgres
+    password: QweAsd123
+    username: postgres
+    driver-class-name: org.postgresql.Driver
+  form: org.hibernate.dialect.PostgreSQLDialect
+bot:
+  name: GBNotificationBot
+  token: 6693034040:AAF-ZNDPkOJku6fpFaMXhVwG-dNTwo5vJe0
