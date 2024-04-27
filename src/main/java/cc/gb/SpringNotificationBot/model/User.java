@@ -8,6 +8,9 @@ import org.glassfish.grizzly.http.util.TimeStamp;
 
 import java.util.List;
 
+/**
+ * Сущность представляющая собой пользователя.
+ */
 @Data
 @ToString
 @Entity(name = "userDataTable")

@@ -4,6 +4,10 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
+
+/**
+ * Вспомогательный класс для ввода мероприятия.
+ */
 @Data
 public class EventInputState {
     private String description;

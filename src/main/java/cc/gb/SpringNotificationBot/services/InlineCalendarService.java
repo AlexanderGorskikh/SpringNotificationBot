@@ -9,6 +9,11 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ *  Сервис, отвечающий за графческое представление календаря
+ *   при выборе времени уведомления о мероприятии
+ */
+
 @Service
 public class InlineCalendarService {
 

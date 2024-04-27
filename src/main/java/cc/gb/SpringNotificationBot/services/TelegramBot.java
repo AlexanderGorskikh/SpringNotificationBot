@@ -56,6 +56,12 @@ public class TelegramBot extends TelegramLongPollingBot {
         return botConfiguration.getBotToken();
     }
 
+
+    /**
+     * Метод захватывающий и обрабатывающий сообщение от пользователя.
+     *
+     * @param update    Класс update представляющий объект с сообщением, текстом и chatId
+     */
     @Override
     public void onUpdateReceived(Update update) {
         if (update.hasMessage() && update.getMessage().hasText()) {
@@ -63,15 +69,21 @@ public class TelegramBot extends TelegramLongPollingBot {
             long chatId = update.getMessage().getChatId();
             if (CRUDHandler.getUserById(chatId) != null) {
                 registeredUserBotsMenu(update, message, chatId);
-            } else if (update.hasCallbackQuery()) {
-                eventInputHandle(update);
-            } else {
+            }  else {
                 sendMessage(chatId, StaticMessages.GREETINGS_MESSAGE, regularKeyboard);
                 nonRegisteredUserBotMenu(update, message, chatId);
             }
+        } else if (update.hasCallbackQuery()) {
+            eventInputHandle(update);
         }
     }
 
+    /**
+     * Метод который позволяет "захватывать" процесс ввода даты мероприятия.
+     * Он проверяет, начал ли user ввод мероприятия. Если да, его необходимо завершить.
+     *
+     * @param update    класс Update представляющий объект с сообщением, текстом и chatId
+     */
     private void eventInputHandle(Update update) {
         Long chatId = update.getCallbackQuery().getMessage().getChatId();
         if (eventInputStates.get(chatId) != null) {
@@ -90,6 +102,14 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
+    /**
+     * Меню для незарегестрированных пользователей
+     *
+     * @param update    класс Update представляющий объект с сообщением, текстом и chatId
+     * @param message   сообщение пользователя отправленное в чат
+     * @param chatId    chatId данного пользователя
+     */
+
     private void nonRegisteredUserBotMenu(Update update, String message, long chatId) {
         switch (message) {
             case "/start" -> {
@@ -101,6 +121,14 @@ public class TelegramBot extends TelegramLongPollingBot {
             }
         }
     }
+
+    /**
+     * Меню для зарегестрированных пользователей
+     *
+     * @param update    класс Update представляющий объект с сообщением, текстом и chatId
+     * @param message   сообщение пользователя отправленное в чат
+     * @param chatId    chatId данного пользователя
+     */
 
     private void registeredUserBotsMenu(Update update, String message, long chatId) {
         switch (message) {
