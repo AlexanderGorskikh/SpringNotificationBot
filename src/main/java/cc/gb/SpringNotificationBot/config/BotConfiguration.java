@@ -11,12 +11,12 @@ import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 
 /**
  * Конфигурационный файл, который отвечает за настройку взаимодействия с Telegram API
- * параметры botName и botToken получаем с application.properties
+ * параметры botName и botToken получаем с application.yaml
  */
 
 @Configuration
 @Data
-@PropertySource("application.properties")
+@PropertySource("application.yaml")
 @EnableScheduling
 public class BotConfiguration implements SchedulingConfigurer {
     @Value("${bot.name}")
