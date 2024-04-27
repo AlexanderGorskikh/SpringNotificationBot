@@ -40,7 +40,7 @@ public class TelegramBotCRUDHandler {
         eventRepository.save(event);
     }
 
-    public void deleteEvent(Long eventId){
+    public void deleteEvent(Long eventId) {
         eventRepository.delete(eventRepository.getReferenceById(eventId));
     }
 
@@ -58,9 +58,9 @@ public class TelegramBotCRUDHandler {
         return eventRepository.findByStatusIs(eventStatus);
     }
 
-    public List<Event> getUserEventsByStatus(Long chatId, EventStatus eventStatus){
+    public List<Event> getUserEventsByStatus(Long chatId, EventStatus eventStatus) {
         return eventRepository.findByUserAndStatusIs(
-                userRepository.findById(chatId).orElseThrow(),eventStatus);
+                userRepository.findById(chatId).orElseThrow(), eventStatus);
     }
 
     public List<Event> getAllUserEvents(Long chatId) {
@@ -69,5 +69,9 @@ public class TelegramBotCRUDHandler {
 
     public List<Event> getAllEvents() {
         return eventRepository.findAll();
+    }
+
+    public User getUserById(Long chatId) {
+        return userRepository.findById(chatId).orElse(null);
     }
 }

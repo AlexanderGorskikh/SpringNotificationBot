@@ -14,7 +14,6 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
-import org.telegram.telegrambots.meta.api.objects.stickers.Sticker;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.time.LocalDate;
@@ -24,7 +23,7 @@ import java.util.*;
 /**
  * todo
  * 3. Добавить возможность обновления статуса
- * 6. Добавить логику уведомлений -
+ * 6. Добавить кнопку для регистрации, убрать меню у незарегестрированных пользователей.
  */
 @Slf4j
 @Component
@@ -62,64 +61,82 @@ public class TelegramBot extends TelegramLongPollingBot {
         if (update.hasMessage() && update.getMessage().hasText()) {
             String message = update.getMessage().getText();
             long chatId = update.getMessage().getChatId();
-            switch (message) {
-                case "/start" -> {
-                    CRUDHandler.registerUser(update.getMessage());
-                    startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
-                }
-                case "Add event" -> {
-                    createEvent(chatId);
-                }
-                case "Planned events" -> {
-                    sendEvents(chatId,
-                            CRUDHandler.getUserEventsByStatus(chatId, EventStatus.PLANNED),
-                            "Список запланированных мероприятий");
-                }
-                case "All events" -> {
-                    sendEvents(chatId,
-                            CRUDHandler.getAllUserEvents(chatId),
-                            "Список всех мероприятий: \n");
-                }
-                case "Update event" -> {
-                    sendEvents(chatId,
-                            CRUDHandler.getUserEventsByStatus(chatId, EventStatus.PLANNED),
-                            "Введите новое описание мероприятия в формате: \"номер_новое описание\" \n");
-                    var inputState = new EventInputState();
-                    inputState.setUpdate(true);
-                    eventInputStates.put(chatId, inputState);
-                }
-                case "Help" -> {
-                    sendMessage(chatId, StaticMessages.HELP_MESSAGE, regularKeyboard);
-                }
-                case "Delete event" -> {
-                    sendEvents(chatId,
-                            CRUDHandler.getAllUserEvents(chatId),
-                            "Введите индекс мероприятия, который вы хотите удалить: \n");
-                    var inputState = new EventInputState();
-                    inputState.setDelete(true);
-                    eventInputStates.put(chatId, inputState);
-                }
-                default -> {
-                    handleMessage(chatId, message);
-                }
+            if (CRUDHandler.getUserById(chatId) != null) {
+                registeredUserBotsMenu(update, message, chatId);
+            } else if (update.hasCallbackQuery()) {
+                eventInputHandle(update);
+            } else {
+                sendMessage(chatId, StaticMessages.GREETINGS_MESSAGE, regularKeyboard);
+                nonRegisteredUserBotMenu(update, message, chatId);
             }
-        } else if (update.hasCallbackQuery()) {
-            Long chatId = update.getCallbackQuery().getMessage().getChatId();
-            if (eventInputStates.get(chatId) != null) {
+        }
+    }
 
-                String data = update.getCallbackQuery().getData();
-                Integer messageId = update.getCallbackQuery().getMessage().getMessageId();
-                if (eventInputStates.get(chatId).isChoiceDay()) {
-                    eventInputStates.get(chatId).setDay(Integer.parseInt(data));
-                    editMessage(chatId,
-                            "Выберите час: ",
-                            messageId,
-                            inlineCalendarService.createInlineNumberButtons(24));
-                    eventInputStates.get(chatId).setChoiceDay(false);
-                } else {
-                    processEventDateInput(chatId, data, messageId);
-                }
+    private void eventInputHandle(Update update) {
+        Long chatId = update.getCallbackQuery().getMessage().getChatId();
+        if (eventInputStates.get(chatId) != null) {
+            String data = update.getCallbackQuery().getData();
+            Integer messageId = update.getCallbackQuery().getMessage().getMessageId();
+            if (eventInputStates.get(chatId).isChoiceDay()) {
+                eventInputStates.get(chatId).setDay(Integer.parseInt(data));
+                editMessage(chatId,
+                        "Выберите час: ",
+                        messageId,
+                        inlineCalendarService.createInlineNumberButtons(24));
+                eventInputStates.get(chatId).setChoiceDay(false);
+            } else {
+                processEventDateInput(chatId, data, messageId);
             }
+        }
+    }
+
+    private void nonRegisteredUserBotMenu(Update update, String message, long chatId) {
+        switch (message) {
+            case "/start" -> {
+                CRUDHandler.registerUser(update.getMessage());
+                startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
+            }
+            case "Help" -> {
+                sendMessage(chatId, StaticMessages.HELP_MESSAGE, regularKeyboard);
+            }
+        }
+    }
+
+    private void registeredUserBotsMenu(Update update, String message, long chatId) {
+        switch (message) {
+            case "Add event" -> {
+                createEvent(chatId);
+            }
+            case "Planned events" -> {
+                sendEvents(chatId,
+                        CRUDHandler.getUserEventsByStatus(chatId, EventStatus.PLANNED),
+                        "Список запланированных мероприятий");
+            }
+            case "All events" -> {
+                sendEvents(chatId,
+                        CRUDHandler.getAllUserEvents(chatId),
+                        "Список всех мероприятий: \n");
+            }
+            case "Update event" -> {
+                sendEvents(chatId,
+                        CRUDHandler.getUserEventsByStatus(chatId, EventStatus.PLANNED),
+                        "Введите новое описание мероприятия в формате: \"номер_новое описание\" \n");
+                var inputState = new EventInputState();
+                inputState.setUpdate(true);
+                eventInputStates.put(chatId, inputState);
+            }
+            case "Help" -> {
+                sendMessage(chatId, StaticMessages.HELP_MESSAGE, regularKeyboard);
+            }
+            case "Delete event" -> {
+                sendEvents(chatId,
+                        CRUDHandler.getAllUserEvents(chatId),
+                        "Введите индекс мероприятия, который вы хотите удалить: \n");
+                var inputState = new EventInputState();
+                inputState.setDelete(true);
+                eventInputStates.put(chatId, inputState);
+            }
+            default -> handleMessage(chatId, message);
         }
     }
 
@@ -127,8 +144,8 @@ public class TelegramBot extends TelegramLongPollingBot {
      * Метод который позволяет переслать в сообщении пользователю все Event в списке listEvent
      * определённым образом
      *
-     * @param chatId    идентификатор чата
-     * @param listEvent список Event для передачи пользователю
+     * @param chatId      идентификатор чата
+     * @param listEvent   список Event для передачи пользователю
      * @param description текстовое описание каждого мероприятия
      */
     private void sendEvents(long chatId, Iterable<Event> listEvent, String description) {
@@ -142,21 +159,23 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     /**
-     * Метод который вызывается при коменде /start и выводит приветственное сообщение
+     * Метод который вызывается при команде /start и выводит приветственное сообщение
+     *
      * @param chatId идентификатор чата
-     * @param name имя пользователя
+     * @param name   имя пользователя
      */
     private void startCommandReceived(long chatId, String name) {
         String answer = EmojiParser.parseToUnicode("Hi, " + name + " nice to meet you :blush:");
-        sendSticker(chatId,new InputFile(Stickers.Hi.getKey()));
+        sendSticker(chatId, new InputFile(Stickers.Hi.getKey()));
         log.info("Replied to user " + name);
         sendMessage(chatId, answer, regularKeyboard);
     }
 
     /**
      * Базовый метод для отправки сообщений
-     * @param chatId Идентификатор чата
-     * @param msg Сообщение которое будет переслано в чат
+     *
+     * @param chatId   Идентификатор чата
+     * @param msg      Сообщение которое будет переслано в чат
      * @param keyboard Постоянная клавиатура
      */
     public void sendMessage(long chatId, String msg, ReplyKeyboardMarkup keyboard) {
@@ -168,11 +187,12 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     /**
-     * Метод который позволяет редактивровать сообщение
-     * @param chatId Идентификатор чата
-     * @param msg Новое сообщение которое будет переслано в чат
+     * Метод который позволяет редактировать сообщение
+     *
+     * @param chatId    Идентификатор чата
+     * @param msg       Новое сообщение которое будет переслано в чат
      * @param messageId Идентификатор конкретного сообщения, которое будет изменено
-     * @param markup Клавиатура которая присоединяется к сообщению
+     * @param markup    Клавиатура которая присоединяется к сообщению
      */
     public void editMessage(
             long chatId,
@@ -182,12 +202,18 @@ public class TelegramBot extends TelegramLongPollingBot {
         EditMessageText editedMessage = new EditMessageText();
         editedMessage.setChatId(chatId);
         editedMessage.setMessageId(messageId);
-        if (markup!=null) editedMessage.setReplyMarkup(markup);
+        if (markup != null) editedMessage.setReplyMarkup(markup);
         editedMessage.setText(msg);
         executeMessage(editedMessage);
     }
 
-    public void sendSticker(Long chatId,InputFile inputFile){
+    /**
+     * Отправка привественного стикера при регистрации
+     *
+     * @param chatId - chatId user-a
+     * @param inputFile - стикер
+     */
+    public void sendSticker(Long chatId, InputFile inputFile) {
         SendSticker sendSticker = new SendSticker();
         sendSticker.setChatId(chatId);
         sendSticker.setSticker(inputFile);
@@ -200,6 +226,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     /**
      * Вспомогательный метод для отправки обычных сообщений
+     *
      * @param message Объект инкапсулирующий сообщение
      */
     private void executeMessage(SendMessage message) {
@@ -209,8 +236,10 @@ public class TelegramBot extends TelegramLongPollingBot {
             log.error("Error occurred: " + e.getMessage());
         }
     }
+
     /**
      * Вспомогательный метод для редактирования сообщений (перегруженный)
+     *
      * @param message Объект инкапсулирующий сообщение
      */
     private void executeMessage(EditMessageText message) {
@@ -223,6 +252,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     /**
      * Метод который создаёт постоянную клавиатуру
+     *
      * @return Объект постоянной клавиатуры
      */
     private ReplyKeyboardMarkup createRegularKeyboard() {
@@ -245,6 +275,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     /**
      * Стартовый метод цепочки сохранения мероприятия,
      * последующие действия перехватываются в handleMessage()
+     *
      * @param chatId Идентификатор чата
      */
     private void createEvent(Long chatId) {
@@ -254,8 +285,9 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     /**
      * Метод обновления мероприятия
-     * @param chatId Идентификатор чата
-     * @param eventId Идентификатор мероприятия
+     *
+     * @param chatId         Идентификатор чата
+     * @param eventId        Идентификатор мероприятия
      * @param newDescription Новый текст мероприятия
      */
     private void updateEvent(Long chatId, Long eventId, String newDescription) {
@@ -266,7 +298,8 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     /**
      * Метод удаления мероприятия
-     * @param chatId Идентификатор чата
+     *
+     * @param chatId  Идентификатор чата
      * @param eventId Идентификатор мероприятия
      */
     private void deleteEvent(Long chatId, Long eventId) {
@@ -276,7 +309,8 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     /**
      * Вспомогательный метод для выбора дня при создании новой записи о мероприятии
-     * @param chatId Идентификатор чата
+     *
+     * @param chatId  Идентификатор чата
      * @param message Текст сообщения
      */
     private void processEventDescriptionInput(Long chatId, String message) {
@@ -290,8 +324,9 @@ public class TelegramBot extends TelegramLongPollingBot {
     /**
      * Вспомогательный метод для выбора часа при создании новой записи о мероприятии, а также
      * добавления в базу данных
-     * @param chatId Идентификатор чата
-     * @param hour Час мероприятия
+     *
+     * @param chatId    Идентификатор чата
+     * @param hour      Час мероприятия
      * @param messageId Идентификатор конкретного сообщения в чате
      */
     private void processEventDateInput(Long chatId, String hour, Integer messageId) {
@@ -304,13 +339,14 @@ public class TelegramBot extends TelegramLongPollingBot {
                 Integer.parseInt(hour), 0, 0);
         state.setTimeOfNotification(dateTime);
         CRUDHandler.addEvent(state, chatId);
-        editMessage(chatId,"Событие успешно добавлено!", messageId,null);
+        editMessage(chatId, "Событие успешно добавлено!", messageId, null);
         eventInputStates.remove(chatId);
     }
 
     /**
      * Метод, служащий для обработки сообщений от пользователя
-     * @param chatId Идентификатор чата
+     *
+     * @param chatId  Идентификатор чата
      * @param message Сообщение от пользователя
      */
     private void handleMessage(Long chatId, String message) {
