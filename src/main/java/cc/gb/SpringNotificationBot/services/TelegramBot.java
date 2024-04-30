@@ -60,7 +60,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     /**
      * Метод захватывающий и обрабатывающий сообщение от пользователя.
      *
-     * @param update    Класс update представляющий объект с сообщением, текстом и chatId
+     * @param update Класс update представляющий объект с сообщением, текстом и chatId
      */
     @Override
     public void onUpdateReceived(Update update) {
@@ -68,10 +68,10 @@ public class TelegramBot extends TelegramLongPollingBot {
             String message = update.getMessage().getText();
             long chatId = update.getMessage().getChatId();
             if (CRUDHandler.getUserById(chatId) != null) {
-                registeredUserBotsMenu(update, message, chatId);
-            }  else {
+                registeredUserBotsMenu(update,EmojiParser.removeAllEmojis(message), chatId);
+            } else {
                 sendMessage(chatId, StaticMessages.GREETINGS_MESSAGE, regularKeyboard);
-                nonRegisteredUserBotMenu(update, message, chatId);
+                nonRegisteredUserBotMenu(update,EmojiParser.removeAllEmojis(message), chatId);
             }
         } else if (update.hasCallbackQuery()) {
             eventInputHandle(update);
@@ -82,7 +82,7 @@ public class TelegramBot extends TelegramLongPollingBot {
      * Метод который позволяет "захватывать" процесс ввода даты мероприятия.
      * Он проверяет, начал ли user ввод мероприятия. Если да, его необходимо завершить.
      *
-     * @param update    класс Update представляющий объект с сообщением, текстом и chatId
+     * @param update класс Update представляющий объект с сообщением, текстом и chatId
      */
     private void eventInputHandle(Update update) {
         Long chatId = update.getCallbackQuery().getMessage().getChatId();
@@ -105,9 +105,9 @@ public class TelegramBot extends TelegramLongPollingBot {
     /**
      * Меню для незарегестрированных пользователей
      *
-     * @param update    класс Update представляющий объект с сообщением, текстом и chatId
-     * @param message   сообщение пользователя отправленное в чат
-     * @param chatId    chatId данного пользователя
+     * @param update  класс Update представляющий объект с сообщением, текстом и chatId
+     * @param message сообщение пользователя отправленное в чат
+     * @param chatId  chatId данного пользователя
      */
 
     private void nonRegisteredUserBotMenu(Update update, String message, long chatId) {
@@ -125,9 +125,9 @@ public class TelegramBot extends TelegramLongPollingBot {
     /**
      * Меню для зарегестрированных пользователей
      *
-     * @param update    класс Update представляющий объект с сообщением, текстом и chatId
-     * @param message   сообщение пользователя отправленное в чат
-     * @param chatId    chatId данного пользователя
+     * @param update  класс Update представляющий объект с сообщением, текстом и chatId
+     * @param message сообщение пользователя отправленное в чат
+     * @param chatId  chatId данного пользователя
      */
 
     private void registeredUserBotsMenu(Update update, String message, long chatId) {
@@ -138,7 +138,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             case "Planned events" -> {
                 sendEvents(chatId,
                         CRUDHandler.getUserEventsByStatus(chatId, EventStatus.PLANNED),
-                        "Список запланированных мероприятий");
+                        "Список запланированных мероприятий: \n");
             }
             case "All events" -> {
                 sendEvents(chatId,
@@ -193,7 +193,7 @@ public class TelegramBot extends TelegramLongPollingBot {
      * @param name   имя пользователя
      */
     private void startCommandReceived(long chatId, String name) {
-        String answer = EmojiParser.parseToUnicode("Hi, " + name + " nice to meet you :blush:");
+        String answer = EmojiParser.parseToUnicode("Hi, " + name + " nice to meet you &#128075;:blush: ");
         sendSticker(chatId, new InputFile(Stickers.Hi.getKey()));
         log.info("Replied to user " + name);
         sendMessage(chatId, answer, regularKeyboard);
@@ -238,7 +238,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     /**
      * Отправка привественного стикера при регистрации
      *
-     * @param chatId - chatId user-a
+     * @param chatId    - chatId user-a
      * @param inputFile - стикер
      */
     public void sendSticker(Long chatId, InputFile inputFile) {
@@ -287,14 +287,14 @@ public class TelegramBot extends TelegramLongPollingBot {
         ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
         List<KeyboardRow> keyboardRows = new ArrayList<>();
         KeyboardRow row = new KeyboardRow();
-        row.add("Add event");
-        row.add("Planned events");
-        row.add("Update event");
+        row.add(EmojiParser.parseToUnicode("&#128161;Add event"));
+        row.add(EmojiParser.parseToUnicode("&#128269;Planned events"));
+        row.add(EmojiParser.parseToUnicode("&#128203;Update event"));
         keyboardRows.add(row);
         row = new KeyboardRow();
         row.add("Help");
-        row.add("All events");
-        row.add("Delete event");
+        row.add(EmojiParser.parseToUnicode("&#128197;All events"));
+        row.add(EmojiParser.parseToUnicode("&#10060;Delete event"));
         keyboardRows.add(row);
         keyboard.setKeyboard(keyboardRows);
         return keyboard;
