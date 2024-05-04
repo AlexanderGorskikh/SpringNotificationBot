@@ -18,12 +18,12 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
 import java.util.*;
 
 /**
- * todo
  * 3. Добавить возможность обновления статуса
- * 6. Добавить кнопку для регистрации, убрать меню у незарегестрированных пользователей.
  */
 @Slf4j
 @Component
@@ -67,12 +67,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         if (update.hasMessage() && update.getMessage().hasText()) {
             String message = update.getMessage().getText();
             long chatId = update.getMessage().getChatId();
-            if (CRUDHandler.getUserById(chatId) != null) {
-                registeredUserBotsMenu(update,EmojiParser.removeAllEmojis(message), chatId);
-            } else {
-                sendMessage(chatId, StaticMessages.GREETINGS_MESSAGE, regularKeyboard);
-                nonRegisteredUserBotMenu(update,EmojiParser.removeAllEmojis(message), chatId);
-            }
+            commandMenu(update, EmojiParser.removeAllEmojis(message), chatId);
         } else if (update.hasCallbackQuery()) {
             eventInputHandle(update);
         }
@@ -96,28 +91,17 @@ public class TelegramBot extends TelegramLongPollingBot {
                         messageId,
                         inlineCalendarService.createInlineNumberButtons(24));
                 eventInputStates.get(chatId).setChoiceDay(false);
+                eventInputStates.get(chatId).setChoiceHour(true);
+            } else if (eventInputStates.get(chatId).isChoiceHour()) {
+                eventInputStates.get(chatId).setHour(Integer.parseInt(data));
+                editMessage(chatId,
+                        "Выберите минуту: ",
+                        messageId,
+                        inlineCalendarService.createInlineNumberButtons(60));
+                eventInputStates.get(chatId).setChoiceHour(false);
             } else {
-                processEventDateInput(chatId, data, messageId);
-            }
-        }
-    }
-
-    /**
-     * Меню для незарегестрированных пользователей
-     *
-     * @param update  класс Update представляющий объект с сообщением, текстом и chatId
-     * @param message сообщение пользователя отправленное в чат
-     * @param chatId  chatId данного пользователя
-     */
-
-    private void nonRegisteredUserBotMenu(Update update, String message, long chatId) {
-        switch (message) {
-            case "/start" -> {
-                CRUDHandler.registerUser(update.getMessage());
-                startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
-            }
-            case "Help" -> {
-                sendMessage(chatId, StaticMessages.HELP_MESSAGE, regularKeyboard);
+                eventInputStates.get(chatId).setMinute(Integer.parseInt(data));
+                processEventDateInput(chatId, messageId);
             }
         }
     }
@@ -130,8 +114,13 @@ public class TelegramBot extends TelegramLongPollingBot {
      * @param chatId  chatId данного пользователя
      */
 
-    private void registeredUserBotsMenu(Update update, String message, long chatId) {
+    private void commandMenu(Update update, String message, long chatId) {
         switch (message) {
+            case "/start" -> {
+                if (CRUDHandler.registerUser(update.getMessage()))
+                    startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
+                else sendMessage(chatId, "Вы уже зарегистрированы. Для подробностей нажмите Help", null);
+            }
             case "Add event" -> {
                 createEvent(chatId);
             }
@@ -182,7 +171,10 @@ public class TelegramBot extends TelegramLongPollingBot {
         listEvent.forEach(event ->
                 sb.append(event.getId()).append(" ")
                         .append(event.getStatus()).append(" : ")
-                        .append(event.getDescription()).append("\n"));
+                        .append(event.getDescription()).append("\n")
+                        .append("Запланирован на ")
+                        .append(event.getTimeOfNotification().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")))
+                        .append("\n"));
         sendMessage(chatId, sb.toString(), regularKeyboard);
     }
 
@@ -354,17 +346,17 @@ public class TelegramBot extends TelegramLongPollingBot {
      * добавления в базу данных
      *
      * @param chatId    Идентификатор чата
-     * @param hour      Час мероприятия
      * @param messageId Идентификатор конкретного сообщения в чате
      */
-    private void processEventDateInput(Long chatId, String hour, Integer messageId) {
+    private void processEventDateInput(Long chatId, Integer messageId) {
         EventInputState state = eventInputStates.get(chatId);
         LocalDate localdate = LocalDate.now();
         LocalDateTime dateTime = LocalDateTime.of(
                 localdate.getYear(),
                 localdate.getMonth(),
                 eventInputStates.get(chatId).getDay(),
-                Integer.parseInt(hour), 0, 0);
+                eventInputStates.get(chatId).getHour(),
+                eventInputStates.get(chatId).getMinute(), 0);
         state.setTimeOfNotification(dateTime);
         CRUDHandler.addEvent(state, chatId);
         editMessage(chatId, "Событие успешно добавлено!", messageId, null);

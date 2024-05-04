@@ -5,8 +5,17 @@ package cc.gb.SpringNotificationBot.model;
  */
 
 public class StaticMessages {
-    public final static String HELP_MESSAGE = "Welcome to our demonstration bot";
+    public final static String HELP_MESSAGE = """
+            Добро пожаловать в бот
+            Данный бот предназначен для напоминаний о предстоящих событиях
+            
+            Вы можете воспользоваться следующими командами:
+            Help: вызовет данное сообщение
+            Add event: позволит создать новое мероприятие, необходимо выбрать дату и час для напоминания
+            Planned events: выводит список запланированных мероприятий
+            All events: выведет список с историей всех мероприятий
+            Update event: позволит отредактировать текст мероприятия
+            Delete event: позволит удалить мероприятие
+            """;
 
-    public final static String GREETINGS_MESSAGE = "Добро пожаловать в бот управления мероприятиями." +
-            "Нажмите \"/start\" для начала работы или \"/help\" для помощи";
 }
