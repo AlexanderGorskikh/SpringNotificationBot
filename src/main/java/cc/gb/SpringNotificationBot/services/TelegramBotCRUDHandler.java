@@ -30,6 +30,7 @@ public class TelegramBotCRUDHandler {
         event.setDescription(state.getDescription());
         event.setUser(userRepository.findById(chatId).orElse(null));
         event.setTimeOfNotification(state.getTimeOfNotification());
+        event.setTimeOfCreation(state.getTimeOfNotification());
         event.setStatus(EventStatus.PLANNED);
         eventRepository.save(event);
     }
@@ -44,13 +45,16 @@ public class TelegramBotCRUDHandler {
         eventRepository.delete(eventRepository.getReferenceById(eventId));
     }
 
-    public void registerUser(Message msg) {
+    public boolean registerUser(Message msg) {
         if (userRepository.findById(msg.getChatId()).isEmpty()) {
             var chatId = msg.getChatId();
             var chat = msg.getChat();
             User user = new User(chatId, chat.getUserName(), new TimeStamp(), new ArrayList<>());
             userRepository.save(user);
             log.info("User added");
+            return true;
+        } else {
+            return false;
         }
     }
 
