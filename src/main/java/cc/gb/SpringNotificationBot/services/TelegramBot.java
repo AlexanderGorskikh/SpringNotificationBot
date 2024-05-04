@@ -84,23 +84,49 @@ public class TelegramBot extends TelegramLongPollingBot {
         if (eventInputStates.get(chatId) != null) {
             String data = update.getCallbackQuery().getData();
             Integer messageId = update.getCallbackQuery().getMessage().getMessageId();
-            if (eventInputStates.get(chatId).isChoiceDay()) {
-                eventInputStates.get(chatId).setDay(Integer.parseInt(data));
+            var currentState = eventInputStates.get(chatId);
+
+            if (currentState.isChoiceDay()) {
+                int currentMonth = currentState.getChoiceMonth();
+                if (data.equals("next")) {
+                    currentState.setChoiceMonth(++currentMonth);
+                    var date = LocalDate.now().plusMonths(currentMonth);
+                    editMessage(chatId, String.format("Выберите день (%s): ", date.getMonth().name()),
+                            messageId,
+                            inlineCalendarService
+                                    .createChoiceKeyboard(
+                                            LocalDate.now()
+                                                    .plusMonths(currentMonth)));
+                    return;
+                }
+                if (data.equals("prev")) {
+                    currentState.setChoiceMonth(--currentMonth);
+                    var date = LocalDate.now().plusMonths(currentMonth);
+                    editMessage(chatId, String.format("Выберите день (%s): ", date.getMonth().name()),
+                            messageId,
+                            inlineCalendarService
+                                    .createChoiceKeyboard(
+                                            LocalDate.now()
+                                                    .plusMonths(currentMonth)));
+                    return;
+                }
+                currentState.setMonth(LocalDate.now().plusMonths(currentState.getChoiceMonth()).getMonth());
+                currentState.setDay(Integer.parseInt(data));
                 editMessage(chatId,
                         "Выберите час: ",
                         messageId,
                         inlineCalendarService.createInlineNumberButtons(24));
-                eventInputStates.get(chatId).setChoiceDay(false);
-                eventInputStates.get(chatId).setChoiceHour(true);
-            } else if (eventInputStates.get(chatId).isChoiceHour()) {
-                eventInputStates.get(chatId).setHour(Integer.parseInt(data));
+                currentState.setChoiceDay(false);
+                currentState.setChoiceHour(true);
+            } else if (currentState.isChoiceHour()) {
+                currentState.setHour(Integer.parseInt(data));
                 editMessage(chatId,
                         "Выберите минуту: ",
                         messageId,
                         inlineCalendarService.createInlineNumberButtons(60));
-                eventInputStates.get(chatId).setChoiceHour(false);
+                currentState.setChoiceHour(false);
             } else {
-                eventInputStates.get(chatId).setMinute(Integer.parseInt(data));
+                currentState.setMinute(Integer.parseInt(data));
                 processEventDateInput(chatId, messageId);
             }
         }
@@ -336,7 +362,10 @@ public class TelegramBot extends TelegramLongPollingBot {
     private void processEventDescriptionInput(Long chatId, String message) {
         EventInputState state = eventInputStates.get(chatId);
         state.setDescription(message);
-        SendMessage sendMessage = inlineCalendarService.createMessageWithDayButtons(chatId);
+        SendMessage sendMessage = inlineCalendarService
+                .createMessageWithDayButtons(
+                        chatId,
+                        LocalDate.now().plusMonths(state.getChoiceMonth()));
         state.setChoiceDay(true);
         executeMessage(sendMessage);
     }
@@ -349,14 +378,14 @@ public class TelegramBot extends TelegramLongPollingBot {
      * @param messageId Идентификатор конкретного сообщения в чате
      */
     private void processEventDateInput(Long chatId, Integer messageId) {
-        EventInputState state = eventInputStates.get(chatId);
+        var state = eventInputStates.get(chatId);
         LocalDate localdate = LocalDate.now();
         LocalDateTime dateTime = LocalDateTime.of(
                 localdate.getYear(),
-                localdate.getMonth(),
-                eventInputStates.get(chatId).getDay(),
-                eventInputStates.get(chatId).getHour(),
-                eventInputStates.get(chatId).getMinute(), 0);
+                state.getMonth(),
+                state.getDay(),
+                state.getHour(),
+                state.getMinute(), 0);
         state.setTimeOfNotification(dateTime);
         CRUDHandler.addEvent(state, chatId);
         editMessage(chatId, "Событие успешно добавлено!", messageId, null);
