@@ -19,7 +19,6 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.FormatStyle;
 import java.util.*;
 
 /**
@@ -337,7 +336,7 @@ public class TelegramBot extends TelegramLongPollingBot {
      * @param newDescription Новый текст мероприятия
      */
     private void updateEvent(Long chatId, Long eventId, String newDescription) {
-        CRUDHandler.updateEvent(eventId, newDescription);
+        CRUDHandler.updateEventDescription(eventId, newDescription);
         eventInputStates.remove(chatId);
         sendEvents(chatId, CRUDHandler.getAllEventsByStatus(EventStatus.PLANNED), null);
     }

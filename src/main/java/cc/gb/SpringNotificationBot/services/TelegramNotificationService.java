@@ -7,8 +7,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.Month;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 /**
@@ -36,6 +38,7 @@ public class TelegramNotificationService {
      * Уведомления приходят за 30, 10 минут и во время события.
      * После отправки уведомления, событие переходит в статус завершенного.
      */
+
     @Scheduled(fixedDelay = 60000)
     public void checkNotification() {
 
@@ -44,15 +47,22 @@ public class TelegramNotificationService {
 
         for (Event event : notifications) {
             LocalDateTime eventTime = event.getTimeOfNotification();
-            LocalDateTime now = LocalDateTime.now();
-            if (eventTime.isAfter(now) && eventTime.minusMinutes(30).isBefore(now)) {
-                sendEventNotification(notification, event, " через полчаса!");
-            } else if (eventTime.isAfter(now) && eventTime.minusMinutes(10).isBefore(now)) {
-                sendEventNotification(notification, event, " через десять минут!");
+            LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
+
+            if (eventTime.isAfter(now)) {
+                LocalDateTime halfAnHourBefore = eventTime.truncatedTo(ChronoUnit.MINUTES).minusMinutes(30);
+                LocalDateTime tenMinutesBefore = eventTime.truncatedTo(ChronoUnit.MINUTES).minusMinutes(10);
+
+                if (now.isEqual(halfAnHourBefore)) {
+                    sendEventNotification(notification, event, " через полчаса!");
+                } else if (now.isEqual(tenMinutesBefore)) {
+                    sendEventNotification(notification, event, " через десять минут!");
+                }
             }
-            if (event.getTimeOfNotification().isAfter(now)) {
+            if (now.equals(eventTime.truncatedTo(ChronoUnit.MINUTES))) {
                 sendEventNotification(notification, event, " уже сейчас!");
                 event.setStatus(EventStatus.FINISHED);
+                crudHandler.updateEventStatus(event.getId(), EventStatus.FINISHED);
             }
         }
     }
@@ -63,5 +73,11 @@ public class TelegramNotificationService {
         notification.append(str);
         telegramBot.sendMessage(event.getUser().getChatId(), notification.toString(), null);
         notification.setLength(0);
+    }
+
+
+    private boolean isNotificationTime(LocalDateTime eventTime, LocalDateTime now) {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        return sdf.format(eventTime).equals(sdf.format(now));
     }
 }
