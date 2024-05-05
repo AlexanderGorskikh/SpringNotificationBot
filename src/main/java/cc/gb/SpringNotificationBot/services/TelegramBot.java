@@ -133,7 +133,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     /**
-     * Меню для зарегестрированных пользователей
+     * Меню для зарегистрированных пользователей
      *
      * @param update  класс Update представляющий объект с сообщением, текстом и chatId
      * @param message сообщение пользователя отправленное в чат
@@ -254,7 +254,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     /**
-     * Отправка привественного стикера при регистрации
+     * Отправка приветственного стикера при регистрации
      *
      * @param chatId    - chatId user-a
      * @param inputFile - стикер
