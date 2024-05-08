@@ -23,7 +23,7 @@ import java.time.format.FormatStyle;
 import java.util.*;
 
 /**
- * 3. Добавить возможность обновления статуса
+ * 1. Редактировать метод удаления записи
  */
 @Slf4j
 @Component
