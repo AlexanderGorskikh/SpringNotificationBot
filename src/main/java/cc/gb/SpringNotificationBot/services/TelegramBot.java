@@ -183,7 +183,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     /**
-     * Метод который позволяет переслать в сообщении пользователю все Event в списке listEvent
+     * Метод, который позволяет переслать в сообщении пользователю все Event в списке listEvent
      * определённым образом
      *
      * @param chatId      идентификатор чата
@@ -220,7 +220,7 @@ public class TelegramBot extends TelegramLongPollingBot {
      * Базовый метод для отправки сообщений
      *
      * @param chatId   Идентификатор чата
-     * @param msg      Сообщение которое будет переслано в чат
+     * @param msg      Сообщение, которое будет переслано в чат
      * @param keyboard Постоянная клавиатура
      */
     public void sendMessage(long chatId, String msg, ReplyKeyboardMarkup keyboard) {
@@ -237,7 +237,7 @@ public class TelegramBot extends TelegramLongPollingBot {
      * @param chatId    Идентификатор чата
      * @param msg       Новое сообщение которое будет переслано в чат
      * @param messageId Идентификатор конкретного сообщения, которое будет изменено
-     * @param markup    Клавиатура которая присоединяется к сообщению
+     * @param markup    Клавиатура, которая присоединяется к сообщению
      */
     public void editMessage(
             long chatId,
