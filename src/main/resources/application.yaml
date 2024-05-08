@@ -7,7 +7,7 @@ spring:
     show-sql: true
   datasource:
     url: jdbc:postgresql://localhost:5432/postgres
-    password: password
+    password: QweAsd123
     username: postgres
     driver-class-name: org.postgresql.Driver
   form: org.hibernate.dialect.PostgreSQLDialect

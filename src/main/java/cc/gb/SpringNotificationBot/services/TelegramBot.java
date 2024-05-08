@@ -19,7 +19,6 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.FormatStyle;
 import java.util.*;
 
 /**
@@ -133,7 +132,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     /**
-     * Меню для зарегестрированных пользователей
+     * Меню для зарегистрированных пользователей
      *
      * @param update  класс Update представляющий объект с сообщением, текстом и chatId
      * @param message сообщение пользователя отправленное в чат
@@ -184,7 +183,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     /**
-     * Метод который позволяет переслать в сообщении пользователю все Event в списке listEvent
+     * Метод, который позволяет переслать в сообщении пользователю все Event в списке listEvent
      * определённым образом
      *
      * @param chatId      идентификатор чата
@@ -221,7 +220,7 @@ public class TelegramBot extends TelegramLongPollingBot {
      * Базовый метод для отправки сообщений
      *
      * @param chatId   Идентификатор чата
-     * @param msg      Сообщение которое будет переслано в чат
+     * @param msg      Сообщение, которое будет переслано в чат
      * @param keyboard Постоянная клавиатура
      */
     public void sendMessage(long chatId, String msg, ReplyKeyboardMarkup keyboard) {
@@ -238,7 +237,7 @@ public class TelegramBot extends TelegramLongPollingBot {
      * @param chatId    Идентификатор чата
      * @param msg       Новое сообщение которое будет переслано в чат
      * @param messageId Идентификатор конкретного сообщения, которое будет изменено
-     * @param markup    Клавиатура которая присоединяется к сообщению
+     * @param markup    Клавиатура, которая присоединяется к сообщению
      */
     public void editMessage(
             long chatId,
@@ -254,7 +253,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     /**
-     * Отправка привественного стикера при регистрации
+     * Отправка приветственного стикера при регистрации
      *
      * @param chatId    - chatId user-a
      * @param inputFile - стикер
@@ -337,7 +336,7 @@ public class TelegramBot extends TelegramLongPollingBot {
      * @param newDescription Новый текст мероприятия
      */
     private void updateEvent(Long chatId, Long eventId, String newDescription) {
-        CRUDHandler.updateEvent(eventId, newDescription);
+        CRUDHandler.updateEventDescription(eventId, newDescription);
         eventInputStates.remove(chatId);
         sendEvents(chatId, CRUDHandler.getAllEventsByStatus(EventStatus.PLANNED), null);
     }

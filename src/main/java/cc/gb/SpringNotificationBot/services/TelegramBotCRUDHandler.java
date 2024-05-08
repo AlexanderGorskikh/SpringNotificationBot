@@ -35,7 +35,7 @@ public class TelegramBotCRUDHandler {
         eventRepository.save(event);
     }
 
-    public void updateEvent(Long eventId, String newDescription) {
+    public void updateEventDescription(Long eventId, String newDescription) {
         Event event = eventRepository.findById(eventId).orElseThrow();
         event.setDescription(newDescription);
         eventRepository.save(event);
@@ -77,5 +77,11 @@ public class TelegramBotCRUDHandler {
 
     public User getUserById(Long chatId) {
         return userRepository.findById(chatId).orElse(null);
+    }
+
+    public void updateEventStatus(Long eventId, EventStatus eventStatus) {
+        Event event = eventRepository.findById(eventId).orElseThrow();
+        event.setStatus(eventStatus);
+        eventRepository.save(event);
     }
 }
