@@ -25,6 +25,11 @@ public class TelegramBotCRUDHandler {
         this.eventRepository = eventRepository;
     }
 
+    /**
+     *
+     * @param state вспомогательный класс для хранения состояния ввода мероприятия
+     * @param chatId идентификатор чата
+     */
     public void addEvent(EventInputState state, Long chatId) {
         Event event = new Event();
         event.setDescription(state.getDescription());
@@ -35,16 +40,32 @@ public class TelegramBotCRUDHandler {
         eventRepository.save(event);
     }
 
-    public void updateEventDescription(Long eventId, String newDescription) {
+
+    /**
+     *
+     * @param eventId идентификатор мероприятия
+     * @param newDescription новое описание мероприятия
+     */
+    public void updateEvent(Long eventId, String newDescription) {
         Event event = eventRepository.findById(eventId).orElseThrow();
         event.setDescription(newDescription);
         eventRepository.save(event);
     }
-
+    /**
+     *
+     * @param eventId идентификатор мероприятия
+     */
     public void deleteEvent(Long eventId) {
-        eventRepository.delete(eventRepository.getReferenceById(eventId));
+        var event = eventRepository.findById(eventId).orElseThrow();
+        event.setStatus(EventStatus.CANCELED);
+        eventRepository.save(event);
     }
 
+    /**
+     *
+     * @param msg сообщение из телеграм бота
+     * @return успешность добавления пользователя
+     */
     public boolean registerUser(Message msg) {
         if (userRepository.findById(msg.getChatId()).isEmpty()) {
             var chatId = msg.getChatId();
@@ -58,25 +79,36 @@ public class TelegramBotCRUDHandler {
         }
     }
 
+    /**
+     *
+     * @param eventStatus статус уведомления
+     * @return список всех мероприятий по статусу
+     */
+
     public List<Event> getAllEventsByStatus(EventStatus eventStatus) {
         return eventRepository.findByStatusIs(eventStatus);
     }
 
+    /**
+     *
+     * @param chatId идентификатор чата
+     * @param eventStatus статус уведомления
+     * @return список всех мероприятий пользователя по статусу
+     */
     public List<Event> getUserEventsByStatus(Long chatId, EventStatus eventStatus) {
         return eventRepository.findByUserAndStatusIs(
                 userRepository.findById(chatId).orElseThrow(), eventStatus);
     }
 
+    /**
+     *
+     * @param chatId идентификатор чата
+     * @return список всех мероприятий пользователя кроме отмененных
+     */
     public List<Event> getAllUserEvents(Long chatId) {
-        return eventRepository.findByUserIs(userRepository.findById(chatId).orElseThrow());
-    }
-
-    public List<Event> getAllEvents() {
-        return eventRepository.findAll();
-    }
-
-    public User getUserById(Long chatId) {
-        return userRepository.findById(chatId).orElse(null);
+        return eventRepository.findAllActiveEvents(
+                userRepository.findById(chatId).orElseThrow(),
+                EventStatus.PLANNED, EventStatus.FINISHED);
     }
 
     public void updateEventStatus(Long eventId, EventStatus eventStatus) {
