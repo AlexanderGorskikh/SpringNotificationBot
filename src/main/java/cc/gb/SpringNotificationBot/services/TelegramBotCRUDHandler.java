@@ -40,6 +40,7 @@ public class TelegramBotCRUDHandler {
         eventRepository.save(event);
     }
 
+
     /**
      *
      * @param eventId идентификатор мероприятия
@@ -108,5 +109,11 @@ public class TelegramBotCRUDHandler {
         return eventRepository.findAllActiveEvents(
                 userRepository.findById(chatId).orElseThrow(),
                 EventStatus.PLANNED, EventStatus.FINISHED);
+    }
+
+    public void updateEventStatus(Long eventId, EventStatus eventStatus) {
+        Event event = eventRepository.findById(eventId).orElseThrow();
+        event.setStatus(eventStatus);
+        eventRepository.save(event);
     }
 }
