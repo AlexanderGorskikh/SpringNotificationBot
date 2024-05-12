@@ -11,6 +11,7 @@ import org.glassfish.grizzly.http.util.TimeStamp;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.Message;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,24 +27,23 @@ public class TelegramBotCRUDHandler {
     }
 
     /**
-     *
-     * @param state вспомогательный класс для хранения состояния ввода мероприятия
+     * @param state  вспомогательный класс для хранения состояния ввода мероприятия
      * @param chatId идентификатор чата
      */
     public void addEvent(EventInputState state, Long chatId) {
-        Event event = new Event();
-        event.setDescription(state.getDescription());
-        event.setUser(userRepository.findById(chatId).orElse(null));
-        event.setTimeOfNotification(state.getTimeOfNotification());
-        event.setTimeOfCreation(state.getTimeOfNotification());
-        event.setStatus(EventStatus.PLANNED);
-        eventRepository.save(event);
+        eventRepository.save(
+                Event.builder()
+                        .description(state.getDescription())
+                        .user(userRepository.findById(chatId).orElse(null))
+                        .timeOfNotification(state.getTimeOfNotification())
+                        .timeOfCreation(LocalDateTime.now())
+                        .status(EventStatus.PLANNED)
+                        .build());
     }
 
 
     /**
-     *
-     * @param eventId идентификатор мероприятия
+     * @param eventId        идентификатор мероприятия
      * @param newDescription новое описание мероприятия
      */
     public void updateEvent(Long eventId, String newDescription) {
@@ -51,8 +51,8 @@ public class TelegramBotCRUDHandler {
         event.setDescription(newDescription);
         eventRepository.save(event);
     }
+
     /**
-     *
      * @param eventId идентификатор мероприятия
      */
     public void deleteEvent(Long eventId) {
@@ -62,7 +62,6 @@ public class TelegramBotCRUDHandler {
     }
 
     /**
-     *
      * @param msg сообщение из телеграм бота
      * @return успешность добавления пользователя
      */
@@ -70,8 +69,13 @@ public class TelegramBotCRUDHandler {
         if (userRepository.findById(msg.getChatId()).isEmpty()) {
             var chatId = msg.getChatId();
             var chat = msg.getChat();
-            User user = new User(chatId, chat.getUserName(), new TimeStamp(), new ArrayList<>());
-            userRepository.save(user);
+            userRepository.save(
+                    User.builder()
+                            .chatId(chatId)
+                            .userName(chat.getUserName())
+                            .registeredAt(new TimeStamp())
+                            .eventList(new ArrayList<>())
+                            .build());
             log.info("User added");
             return true;
         } else {
@@ -80,7 +84,6 @@ public class TelegramBotCRUDHandler {
     }
 
     /**
-     *
      * @param eventStatus статус уведомления
      * @return список всех мероприятий по статусу
      */
@@ -90,8 +93,7 @@ public class TelegramBotCRUDHandler {
     }
 
     /**
-     *
-     * @param chatId идентификатор чата
+     * @param chatId      идентификатор чата
      * @param eventStatus статус уведомления
      * @return список всех мероприятий пользователя по статусу
      */
@@ -101,7 +103,6 @@ public class TelegramBotCRUDHandler {
     }
 
     /**
-     *
      * @param chatId идентификатор чата
      * @return список всех мероприятий пользователя кроме отмененных
      */
@@ -115,5 +116,6 @@ public class TelegramBotCRUDHandler {
         Event event = eventRepository.findById(eventId).orElseThrow();
         event.setStatus(eventStatus);
         eventRepository.save(event);
+        log.info("Event with id {} status updated",eventId);
     }
 }
