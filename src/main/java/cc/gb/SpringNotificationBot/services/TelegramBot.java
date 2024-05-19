@@ -21,9 +21,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
-/**
- * 1. Редактировать метод удаления записи
- */
 @Slf4j
 @Component
 public class TelegramBot extends TelegramLongPollingBot {
@@ -79,10 +76,10 @@ public class TelegramBot extends TelegramLongPollingBot {
      * @param update класс Update представляющий объект с сообщением, текстом и chatId
      */
     private void eventInputHandle(Update update) {
-        Long chatId = update.getCallbackQuery().getMessage().getChatId();
+        var chatId = update.getCallbackQuery().getMessage().getChatId();
         if (eventInputStates.get(chatId) != null) {
-            String data = update.getCallbackQuery().getData();
-            Integer messageId = update.getCallbackQuery().getMessage().getMessageId();
+            var data = update.getCallbackQuery().getData();
+            var messageId = update.getCallbackQuery().getMessage().getMessageId();
             var currentState = eventInputStates.get(chatId);
 
             if (currentState.isChoiceDay()) {
@@ -148,35 +145,36 @@ public class TelegramBot extends TelegramLongPollingBot {
             }
             case "Add event" -> {
                 createEvent(chatId);
+                log.info("User: {} started creating event", chatId);
             }
             case "Planned events" -> {
                 sendEvents(chatId,
                         CRUDHandler.getUserEventsByStatus(chatId, EventStatus.PLANNED),
                         "Список запланированных мероприятий: \n");
+                log.info("Sending planned events for user: {}", chatId);
             }
             case "All events" -> {
                 sendEvents(chatId,
                         CRUDHandler.getAllUserEvents(chatId),
                         "Список всех мероприятий: \n");
+                log.info("Sending all events for user: {}", chatId);
             }
             case "Update event" -> {
                 sendEvents(chatId,
                         CRUDHandler.getUserEventsByStatus(chatId, EventStatus.PLANNED),
                         "Введите новое описание мероприятия в формате: \"номер_новое описание\" \n");
-                var inputState = new EventInputState();
-                inputState.setUpdate(true);
-                eventInputStates.put(chatId, inputState);
+                eventInputStates.put(chatId, EventInputState.builder().isUpdate(true).build());
+                log.info("user: {} started update event", chatId);
             }
             case "Help" -> {
                 sendMessage(chatId, StaticMessages.HELP_MESSAGE, regularKeyboard);
+                log.info("Sending help-massage events for user: {}", chatId);
             }
             case "Delete event" -> {
                 sendEvents(chatId,
                         CRUDHandler.getAllUserEvents(chatId),
                         "Введите индекс мероприятия, который вы хотите удалить: \n");
-                var inputState = new EventInputState();
-                inputState.setDelete(true);
-                eventInputStates.put(chatId, inputState);
+                eventInputStates.put(chatId, EventInputState.builder().isDelete(true).build());
             }
             default -> handleMessage(chatId, message);
         }
@@ -191,7 +189,7 @@ public class TelegramBot extends TelegramLongPollingBot {
      * @param description текстовое описание каждого мероприятия
      */
     private void sendEvents(long chatId, Iterable<Event> listEvent, String description) {
-        StringBuilder sb = new StringBuilder();
+        var sb = new StringBuilder();
         if (description != null) sb.append(description);
         listEvent.forEach(event ->
                 sb.append(event.getId()).append(" ")
@@ -212,7 +210,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     private void startCommandReceived(long chatId, String name) {
         String answer = EmojiParser.parseToUnicode("Hi, " + name + " nice to meet you &#128075;:blush: ");
         sendSticker(chatId, new InputFile(Stickers.Hi.getKey()));
-        log.info("Replied to user " + name);
+        log.info("Replied to user {}", name);
         sendMessage(chatId, answer, regularKeyboard);
     }
 
@@ -224,7 +222,7 @@ public class TelegramBot extends TelegramLongPollingBot {
      * @param keyboard Постоянная клавиатура
      */
     public void sendMessage(long chatId, String msg, ReplyKeyboardMarkup keyboard) {
-        SendMessage message = new SendMessage();
+        var message = new SendMessage();
         message.setChatId(chatId);
         message.setText(msg);
         message.setReplyMarkup(keyboard);
@@ -244,7 +242,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             String msg,
             Integer messageId,
             InlineKeyboardMarkup markup) {
-        EditMessageText editedMessage = new EditMessageText();
+        var editedMessage = new EditMessageText();
         editedMessage.setChatId(chatId);
         editedMessage.setMessageId(messageId);
         if (markup != null) editedMessage.setReplyMarkup(markup);
@@ -259,7 +257,7 @@ public class TelegramBot extends TelegramLongPollingBot {
      * @param inputFile - стикер
      */
     public void sendSticker(Long chatId, InputFile inputFile) {
-        SendSticker sendSticker = new SendSticker();
+        var sendSticker = new SendSticker();
         sendSticker.setChatId(chatId);
         sendSticker.setSticker(inputFile);
         try {
@@ -278,7 +276,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         try {
             execute(message);
         } catch (TelegramApiException e) {
-            log.error("Error occurred: " + e.getMessage());
+            log.error("Error occurred: {}", e.getMessage());
         }
     }
 
@@ -291,7 +289,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         try {
             execute(message);
         } catch (TelegramApiException e) {
-            log.error("Error occurred: " + e.getMessage());
+            log.error("Error occurred: {}", e.getMessage());
         }
     }
 
@@ -301,9 +299,9 @@ public class TelegramBot extends TelegramLongPollingBot {
      * @return Объект постоянной клавиатуры
      */
     private ReplyKeyboardMarkup createRegularKeyboard() {
-        ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
+        var keyboard = new ReplyKeyboardMarkup();
         List<KeyboardRow> keyboardRows = new ArrayList<>();
-        KeyboardRow row = new KeyboardRow();
+        var row = new KeyboardRow();
         row.add(EmojiParser.parseToUnicode("&#128161;Add event"));
         row.add(EmojiParser.parseToUnicode("&#128269;Planned events"));
         row.add(EmojiParser.parseToUnicode("&#128203;Update event"));
@@ -325,7 +323,7 @@ public class TelegramBot extends TelegramLongPollingBot {
      */
     private void createEvent(Long chatId) {
         sendMessage(chatId, "Введите описание мероприятия:", regularKeyboard);
-        eventInputStates.put(chatId, new EventInputState());
+        eventInputStates.put(chatId, EventInputState.builder().build());
     }
 
     /**
@@ -336,7 +334,7 @@ public class TelegramBot extends TelegramLongPollingBot {
      * @param newDescription Новый текст мероприятия
      */
     private void updateEvent(Long chatId, Long eventId, String newDescription) {
-        CRUDHandler.updateEventDescription(eventId, newDescription);
+        CRUDHandler.updateEvent(eventId, newDescription);
         eventInputStates.remove(chatId);
         sendEvents(chatId, CRUDHandler.getAllEventsByStatus(EventStatus.PLANNED), null);
     }
@@ -359,9 +357,9 @@ public class TelegramBot extends TelegramLongPollingBot {
      * @param message Текст сообщения
      */
     private void processEventDescriptionInput(Long chatId, String message) {
-        EventInputState state = eventInputStates.get(chatId);
+        var state = eventInputStates.get(chatId);
         state.setDescription(message);
-        SendMessage sendMessage = inlineCalendarService
+        var sendMessage = inlineCalendarService
                 .createMessageWithDayButtons(
                         chatId,
                         LocalDate.now().plusMonths(state.getChoiceMonth()));
@@ -378,8 +376,8 @@ public class TelegramBot extends TelegramLongPollingBot {
      */
     private void processEventDateInput(Long chatId, Integer messageId) {
         var state = eventInputStates.get(chatId);
-        LocalDate localdate = LocalDate.now();
-        LocalDateTime dateTime = LocalDateTime.of(
+        var localdate = LocalDate.now();
+        var dateTime = LocalDateTime.of(
                 localdate.getYear(),
                 state.getMonth(),
                 state.getDay(),
@@ -402,7 +400,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             sendMessage(chatId, "Неизвестная команда. Используйте Help для получения справки.", regularKeyboard);
             return;
         }
-        EventInputState state = eventInputStates.get(chatId);
+        var state = eventInputStates.get(chatId);
         if (state.isUpdate()) {
             try {
                 String[] tmp = message.split(" ");
