@@ -18,3 +18,8 @@
 4. Hibernate
 5. Docker
 6. Telegram api
+
+## Запуск проекта
+
+***Для запуска бота, достаточно прописать команду
+docker-compose up***
